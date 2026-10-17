@@ -1,6 +1,6 @@
 # Deploy miễn phí: Render + Turso
 
-**Phương án thay thế.** TaskHub đã chạy trên Sites Workers + D1 tại https://taskhub.ninaninohihi.chatgpt.site, độc lập với máy chủ repo. Xem [CLOUD_HOSTING.md](CLOUD_HOSTING.md) cho hệ thống đang chạy. Hướng dẫn dưới đây dùng nếu nhóm chuyển sang Render/Turso; chưa triển khai dịch vụ đó.
+**Phương án thay thế.** TaskHub đã chạy tại https://taskhub-travel.pages.dev/ với frontend Pages, backend Sites Workers và cùng D1, độc lập với máy chủ repo. Xem [PAGES_DEPLOYMENT.md](PAGES_DEPLOYMENT.md) và [CLOUD_HOSTING.md](CLOUD_HOSTING.md) cho hệ thống đang chạy. Hướng dẫn dưới đây dùng nếu nhóm chuyển sang Render/Turso; chưa triển khai dịch vụ đó.
 
 ## Cấu hình
 

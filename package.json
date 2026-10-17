@@ -14,7 +14,9 @@
     "test:ui": "node tests/ui.mjs",
     "test:cloud": "node tests/cloud-api.mjs",
     "cloud:export": "node scripts/export-sites.mjs",
+    "build:pages": "node scripts/build-pages.mjs",
     "data:backup": "node --env-file-if-exists=.env scripts/backup.mjs",
+    "research:report": "node scripts/research-report.mjs",
     "data:purge": "node --env-file-if-exists=.env scripts/purge.mjs"
   },
   "dependencies": {

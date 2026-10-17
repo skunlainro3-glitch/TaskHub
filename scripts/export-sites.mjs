@@ -6,6 +6,8 @@ import assert from 'node:assert/strict';
 const target = resolve(process.argv[2] || '');
 assert.ok(process.argv[2] && target !== process.cwd(), 'Pass the prepared Sites checkout path.');
 const put = (path, text) => { mkdirSync(resolve(target, path, '..'), { recursive: true }); writeFileSync(join(target, path), text); };
+// One approved source for local and hosted catalogs; no fictional inventory is seeded.
+put('lib/catalog.mjs', 'export const referenceCatalog = '+readFileSync('catalog/enviet-tours.json','utf8').trim()+';\n');
 let api = readFileSync('server/index.mjs', 'utf8').replaceAll('\r\n','\n');
 const replace = (before, after) => { assert.equal(api.split(before).length, 2, 'API export contract changed: ' + before.slice(0, 60)); api = api.replace(before, after); };
 api = api.replace('import http from "node:http";\n', '')
@@ -21,7 +23,7 @@ const startupEnd = api.indexOf('const limits = new Map();');
 assert.ok(startupStart > 0 && startupEnd > startupStart);
 api = api.slice(0, startupStart) + `
 if (!(await db.prepare("SELECT id FROM workspaces WHERE id=?").get("agency"))) {
-  try { await db.batch(await workspaceStatements("agency", "TaskHub Travel")); }
+  try { await db.batch(await workspaceStatements("agency", "TaskHub")); }
   catch (e) { if (!(await db.prepare("SELECT id FROM workspaces WHERE id=?").get("agency"))) throw e; }
 }
 async function systemUser(em, password, role, name) {
@@ -94,7 +96,16 @@ replace(`      await transaction(db, async () => {
           .run(id, u.workspace, ...values, 1, now());
         await log(u, "tour_created", id);
       });`, `      await db.batch([['INSERT INTO tours VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',[id,u.workspace,...values,1,now()]],...eventStatement(u,'tour_created',id)]);`);
-const tourStart=api.indexOf('      await transaction(db, async () => {',api.indexOf('const tourMatch'));
+const deleteStart=api.indexOf('      await transaction(db, async () => {',api.indexOf('const tourMatch'));
+const deleteEnd=api.indexOf('      return json(res, { ok: true });',deleteStart);
+assert.ok(deleteStart>0 && deleteEnd>deleteStart);
+api=api.slice(0,deleteStart)+`      const result=await db.batch([
+        ['DELETE FROM tours WHERE id=? AND workspace=? AND version=?',[tourMatch[1],u.workspace,b.version]],
+        ...eventStatement(u,'tour_deleted',tourMatch[1],true),
+      ]);
+      if(!result[0].changes) fail('Tour đã thay đổi hoặc không tồn tại. Tải lại trước khi xóa.',409);
+`+api.slice(deleteEnd);
+const tourStart=api.indexOf('      await transaction(db, async () => {',api.indexOf('if (tourMatch && method === "PUT")'));
 const tourEnd=api.indexOf('      return json(res, { ok: true });',tourStart);
 assert.ok(tourStart>0 && tourEnd>tourStart);
 api = api.slice(0,tourStart) + `      const result=await db.batch([
@@ -154,12 +165,19 @@ put('lib/d1.mjs', `export function adaptD1(DB) {
   };
 }
 `);
+copyFileSync('cloud/pages/proxy-auth.mjs',join(target,'lib/proxy-auth.mjs'));
 put('lib/route.mjs', `import { env } from 'cloudflare:workers';
 import { createApi } from './taskhub-api.mjs';
 import { adaptD1 } from './d1.mjs';
+import { verifyProxyRequest } from './proxy-auth.mjs';
 const handlers=new WeakMap();
 export async function handleApi(request) {
   if(!env.DB) return Response.json({message:'Database chưa được cấu hình.'},{status:503});
+  let clientAddress=request.headers.get('cf-connecting-ip') || 'local';
+  if(request.headers.has('x-taskhub-proxy-signature')) {
+    clientAddress=verifyProxyRequest(request,env.TASKHUB_PROXY_SECRET);
+    if(!clientAddress)return Response.json({message:'Nguồn yêu cầu không hợp lệ.'},{status:403});
+  }
   let pending=handlers.get(env.DB);
   if(!pending) {
     const local=['127.0.0.1','localhost'].includes(new URL(request.url).hostname);
@@ -175,7 +193,7 @@ export async function handleApi(request) {
     // Leaving a rejected POST body unread can reset the local proxy connection.
     const chunks=[];let bytes=0;
     if(request.body)for await(const chunk of request.body){bytes+=chunk.length;if(bytes>32768)return Response.json({message:'Dữ liệu quá lớn.'},{status:413});chunks.push(Buffer.from(chunk));}
-    const req={url:request.url,method:request.method,headers,socket:{remoteAddress:headers['cf-connecting-ip'] || 'local'},
+    const req={url:request.url,method:request.method,headers,socket:{remoteAddress:clientAddress},
       async *[Symbol.asyncIterator]() { for(const chunk of chunks)yield chunk; }
     };
     const outgoing=new Headers(); let status=200, payload='';
@@ -193,7 +211,7 @@ put('app/TaskHub.jsx','"use client";\n'+ui);
 put('app/globals.css',readFileSync('src/styles.css','utf8'));
 for(const [file,relative] of [['app/page.tsx','./TaskHub'],['app/app/page.tsx','../TaskHub'],['app/portal/[workspace]/page.tsx','../../TaskHub']]) put(file,`import TaskHub from '${relative}';\nexport default function Page(){return <TaskHub/>;}\n`);
 put('app/layout.tsx',`import './globals.css';\nexport const metadata={title:'TaskHub · Điều hành tour, cùng một nhịp',description:'TaskHub hỗ trợ doanh nghiệp lữ hành quản lý tour, lịch/số chỗ và công việc.',icons:{icon:'/favicon.svg'}};\nexport default function Layout({children}:{children:React.ReactNode}){return <html lang="vi"><body>{children}</body></html>;}\n`);
-put('README.md',`# TaskHub cloud\n\nGenerated from the TaskHub FE/BE by scripts/export-sites.mjs. Uses Sites Workers and persistent D1, independent of the owner's PC. Runtime credentials are private environment secrets. No CP2 or local personal data is imported.\n\nAI tool used: https://openai.com/codex/\n`);
+put('README.md',`# TaskHub cloud\n\nGenerated from the TaskHub FE/BE by scripts/export-sites.mjs. Uses Sites Workers and persistent D1, independent of the owner's PC. Runtime credentials are private environment secrets. No CP2 or local personal data is imported.\n`);
 copyFileSync('cloud/schema.ts',join(target,'db/schema.ts'));
 copyFileSync('cloud/favicon.svg',join(target,'public/favicon.svg'));
 function copyMigrations(from,to) {

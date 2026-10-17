@@ -1,6 +1,7 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
+import { qaTour } from "./fixtures.mjs";
 mkdirSync("work", { recursive: true });
 const browser = await chromium.launch({
   headless: true,
@@ -22,9 +23,17 @@ const em = "ui-" + Date.now() + "@example.test";
 let registered = false;
 try {
   await page.goto(base);
-  await page
-    .getByRole("button", { name: "Đà Nẵng – Hội An", exact: true })
-    .waitFor();
+  await page.locator('.catalog-card').last().waitFor();
+  assert.equal(await page.locator('.catalog-card').count(),13);
+  await page.getByLabel('Tìm tour',{exact:true}).fill('EVG-TQ11');
+  assert.equal(await page.locator('.catalog-card').count(),1);
+  await page.locator('.catalog-card .card-title').click();
+  await page.getByRole('dialog').getByText('Liên hệ',{exact:true}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Yêu cầu tư vấn',exact:true}).count(),0);
+  await page.getByText('Chưa có ngày khởi hành cụ thể, số chỗ và lịch trình từng ngày.',{exact:false}).waitFor();
+  await page.getByRole('button',{name:'Xong',exact:true}).click();
+  await page.getByLabel('Tìm tour',{exact:true}).fill('');
+  assert.equal(await page.getByText('TaskHub Travel',{exact:true}).count(),0);
   await page.screenshot({ path: "work/portal-desktop.png", fullPage: true });
   for (const width of [320, 390, 768]) {
     await page.setViewportSize({ width, height: 844 });
@@ -41,9 +50,7 @@ try {
     .getByRole("heading", { name: "Chưa có hành trình phù hợp" })
     .waitFor();
   await page.getByRole("button", { name: "Xóa bộ lọc", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Đà Nẵng – Hội An", exact: true })
-    .waitFor();
+  await page.locator('.catalog-card').last().waitFor();
   await page.route("**/api/public/agency", (route) => route.abort());
   await page.reload();
   await page
@@ -58,16 +65,18 @@ try {
   );
   await page.unroute("**/api/public/agency");
   await page.getByRole("button", { name: "Thử tải lại", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Đà Nẵng – Hội An", exact: true })
-    .waitFor();
+  await page.locator('.catalog-card').last().waitFor();
   console.log("Portal responsive, search reset and network recovery passed");
-  await page.getByRole("button", { name: "Dùng thử MVP", exact: true }).click();
+  await page.getByRole("button", { name: "Dùng thử TaskHub", exact: true }).click();
   await page.getByLabel("Tên hiển thị").fill("Người kiểm thử UI");
   await page.getByLabel("Email", { exact: true }).fill(em);
   await page
     .getByLabel("Mật khẩu", { exact: true })
     .fill("Ui-test-secret-2026");
+  assert.equal(await page.getByLabel('Vai trò hiện tại',{exact:true}).inputValue(),'');
+  assert.equal(await page.getByLabel('Quy mô doanh nghiệp',{exact:true}).inputValue(),'');
+  await page.getByLabel('Vai trò hiện tại',{exact:true}).selectOption('operations');
+  await page.getByLabel('Quy mô doanh nghiệp',{exact:true}).selectOption('10to30');
   await page.locator('input[name="consent"]').check();
   await page
     .getByRole("button", { name: "Bắt đầu trải nghiệm", exact: true })
@@ -101,12 +110,40 @@ try {
     1,
     "Background requests piled up while the server was slow",
   );
-  await page.unroute("**/api/workspace");
+  // Drain delayed handlers before later navigation can cancel/handle their routes.
+  await page.unrouteAll({ behavior: "wait" });
   console.log("Slow connection passed: no background request pile-up");
   await page.screenshot({ path: "work/dashboard-desktop.png", fullPage: true });
   await page.getByRole("button", { name: "Quản lý tour", exact: true }).click();
+  await page.getByRole('heading',{name:'Chưa có hành trình',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Tạo tour',exact:true}).click();
+  for(const name of ['duration','departure','price','capacity'])
+    assert.equal(await page.locator(`input[name="${name}"]`).inputValue(),'');
+  assert.equal(await page.locator('input[name="published"]').isChecked(),false);
+  await page.getByRole('button',{name:'Hủy',exact:true}).click();
+  for (const [code,price] of [['EVG-TQ11',''],['EVG-TQ01','28990000']]) {
+    await page.getByRole('button',{name:'Danh mục Én Việt',exact:true}).click();
+    await page.getByLabel('Tìm trong danh mục').fill(code);
+    await page.locator('.catalog-picker-row').click();
+    await page.getByRole('button',{name:'Dùng nội dung tour',exact:true}).click();
+    assert.equal(await page.locator('input[name="price"]').inputValue(),price);
+    for (const name of ['departure','capacity','reserved'])
+      assert.equal(await page.locator(`input[name="${name}"]`).inputValue(),'');
+    assert.equal(await page.locator('textarea[name="itinerary"]').inputValue(),'');
+    assert.equal(await page.locator('input[name="published"]').isChecked(),false);
+    assert.ok((await page.locator('textarea[name="description"]').inputValue()).includes('https://dulichenvietcs.netlify.app/'));
+    await page.getByRole('button',{name:'Hủy',exact:true}).click();
+  }
+  await page.getByRole('button',{name:'Tạo tour',exact:true}).click();
+  for(const name of ['title','destination','departure','duration','price','capacity','reserved'])
+    await page.locator(`input[name="${name}"]`).fill(String(qaTour[name]));
+  await page.locator('textarea[name="description"]').fill(qaTour.description);
+  await page.locator('textarea[name="itinerary"]').fill(qaTour.itinerary);
+  await page.locator('input[name="published"]').check();
+  await page.getByRole('button',{name:'Lưu hành trình',exact:true}).click();
+  await page.getByRole('dialog').waitFor({state:'hidden'});
   await page
-    .getByRole("button", { name: "Đà Nẵng – Hội An", exact: true })
+    .getByRole("button", { name: qaTour.title, exact: true })
     .click();
   await page.getByLabel("Khách đã giữ chỗ").fill("24");
   await page
@@ -123,7 +160,7 @@ try {
     .getByText("Còn 6 chỗ", { exact: true })
     .waitFor();
   await page
-    .getByRole("button", { name: "Đà Nẵng – Hội An", exact: true })
+    .getByRole("button", { name: qaTour.title, exact: true })
     .click();
   await page
     .getByRole("button", { name: "Yêu cầu tư vấn", exact: true })
@@ -158,6 +195,7 @@ try {
   await page
     .getByLabel("Người phụ trách", { exact: true })
     .fill("Nhân viên mẫu");
+  await page.getByLabel('Hạn hoàn thành',{exact:true}).fill(qaTour.departure);
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "Giao công việc", exact: true })
@@ -256,24 +294,19 @@ try {
         .count(),
       0,
     );
-    await review
-      .getByRole("button", { name: "Đà Nẵng – Hội An", exact: true })
-      .click();
-    await review.getByText("Chế độ xem dành cho người đánh giá.").waitFor();
     assert.equal(
       await review
         .getByRole("button", { name: "Lưu hành trình", exact: true })
         .count(),
       0,
     );
-    await review.keyboard.press("Escape");
     await review
       .getByRole("button", { name: "Công việc", exact: true })
       .click();
     const statuses = review.locator('select[aria-label^="Trạng thái "]');
-    assert.ok((await statuses.count()) > 0);
     for (const control of await statuses.all())
       assert.ok(await control.isDisabled());
+    assert.equal(await review.getByRole('button',{name:'Giao công việc',exact:true}).count(),0);
     await review
       .getByRole("button", { name: "Phản hồi MVP", exact: true })
       .click();
@@ -290,6 +323,17 @@ try {
       "Reviewer UI passed: reports visible, tour/task writes unavailable.",
     );
   }
+  await page.setViewportSize({width:1440,height:1050});
+  await page.getByRole('button',{name:'Về điều hành',exact:true}).click();
+  await page.getByRole('button',{name:'Quản lý tour',exact:true}).click();
+  await page.getByRole('button',{name:qaTour.title,exact:true}).click();
+  await page.getByRole('button',{name:'Xóa tour',exact:true}).click();
+  await page.getByRole('button',{name:'Giữ lại tour',exact:true}).click();
+  assert.equal(await page.getByRole('button',{name:'Xác nhận xóa tour',exact:true}).count(),0);
+  await page.getByRole('button',{name:'Xóa tour',exact:true}).click();
+  await page.getByRole('button',{name:'Xác nhận xóa tour',exact:true}).click();
+  await page.getByRole('dialog').waitFor({state:'hidden'});
+  await page.getByRole('heading',{name:'Chưa có hành trình',exact:true}).waitFor();
   console.log(
     "UI PASS: signup, tour sync, inquiry, task create/status, feedback; desktop and mobile no overflow; no page errors.",
   );

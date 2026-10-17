@@ -23,6 +23,7 @@ jobs:
       - name: Verify cloud database driver contract
         run: TEST_DATABASE_DRIVER=libsql npm test
       - run: npm run build
+      - run: npm run build:pages
       - run: npx playwright install --with-deps chromium
       - name: Start application and test browser flows
         shell: bash

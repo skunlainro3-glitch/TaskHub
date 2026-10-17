@@ -1,7 +1,6 @@
 import { connectDatabase } from "./connection.mjs";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { randomUUID } from "node:crypto";
 
 export async function openDatabase(dir = process.env.DATA_DIR || "./data") {
   mkdirSync(dir, { recursive: true });
@@ -42,98 +41,7 @@ export async function purgeExpired(db) {
 export const now = () => new Date().toISOString();
 export async function seedWorkspace(db, id, name) {
   await db.prepare("INSERT INTO workspaces VALUES (?,?)").run(id, name);
-  const day = (offset) => {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() + offset);
-    return d.toISOString().slice(0, 10);
-  };
-  const tours = [
-    [
-      "Đà Nẵng – Hội An",
-      "Đà Nẵng",
-      7,
-      "3 ngày 2 đêm",
-      3490000,
-      30,
-      22,
-      "danang",
-      "Một chuyến đi, hai nhịp sống. Biển Mỹ Khê trong xanh, phố Hội về đêm và những trải nghiệm miền Trung gần gũi.",
-      "Ngày 1: Đón đoàn, biển Mỹ Khê và bữa tối địa phương.\nNgày 2: Tham quan Hội An, làng nghề và phố cổ.\nNgày 3: Mua sắm đặc sản, tiễn đoàn.",
-    ],
-    [
-      "Đà Lạt · Một chút bình yên",
-      "Đà Lạt",
-      10,
-      "3 ngày 2 đêm",
-      2890000,
-      25,
-      14,
-      "dalat",
-      "Rời thành phố, tìm một khoảng xanh. Cà phê giữa đồi thông, vườn hoa và không khí se lạnh của Đà Lạt.",
-      "Ngày 1: Di chuyển đến Đà Lạt, tham quan trung tâm.\nNgày 2: Đồi chè, vườn hoa, trải nghiệm cà phê.\nNgày 3: Chợ Đà Lạt, trở về.",
-    ],
-    [
-      "Phú Quốc · Chạm vào mùa nắng",
-      "Phú Quốc",
-      14,
-      "4 ngày 3 đêm",
-      5990000,
-      35,
-      27,
-      "phuquoc",
-      "Ngày dài bên biển, hoàng hôn trên đảo. Khám phá Nam đảo, thưởng thức hải sản và dành thời gian nghỉ ngơi.",
-      "Ngày 1: Đón tại sân bay, nhận phòng.\nNgày 2: Tham quan Nam đảo và biển.\nNgày 3: Ngày tự do nghỉ dưỡng.\nNgày 4: Trả phòng, tiễn sân bay.",
-    ],
-  ];
-  for (const [index, t] of tours.entries()) {
-    const tourId = randomUUID();
-    await db
-      .prepare("INSERT INTO tours VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
-      .run(
-        tourId,
-        id,
-        t[0],
-        t[1],
-        day(t[2]),
-        t[3],
-        t[4],
-        t[5],
-        t[6],
-        t[8],
-        t[9],
-        t[7],
-        1,
-        1,
-        now(),
-      );
-    const items =
-      index === 0
-        ? [
-            ["Xác nhận danh sách khách", "Minh Tuấn", "high", "doing"],
-            ["Chốt phòng với khách sạn", "Quốc Huy", "high", "todo"],
-            ["Gửi lịch trình cho đoàn", "Tấn Lợi", "normal", "todo"],
-          ]
-        : index === 1
-          ? [
-              ["Xác nhận xe đưa đón", "Thành Đạt", "normal", "done"],
-              ["Kiểm tra thực đơn", "Duy An", "normal", "doing"],
-            ]
-          : [["Kiểm tra vé máy bay", "Minh Tuấn", "high", "todo"]];
-    for (const [title, assignee, priority, status] of items)
-      await db
-        .prepare("INSERT INTO tasks VALUES (?,?,?,?,?,?,?,?,?)")
-        .run(
-          randomUUID(),
-          id,
-          tourId,
-          title,
-          assignee,
-          day(t[2] - 2),
-          priority,
-          status,
-          now(),
-        );
-  }
+  // Workspaces start empty. Business information must be entered by the owner.
 }
 
 // Both private cost information and customer contacts are excluded from public output.
