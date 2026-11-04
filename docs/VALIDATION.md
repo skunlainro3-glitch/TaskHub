@@ -4,6 +4,8 @@
 
 Chỉ sửa nhãn trạng thái, tooltip và phần giải thích Quy trình vận hành sang **tự động cập nhật định kỳ**; làm rõ mô tả trong CODE_GUIDE/CONTENT_REVIEW. Không đổi scheduler, API, database, chu kỳ tải hoặc cảnh báo mất mạng/dữ liệu cũ; không sửa các trích dẫn lịch sử CP2. Bốn bài polling và build Pages đạt. Các tag demo đã phát hành giữ nguyên; lần chỉnh câu chữ này được ghi theo commit trên `build` và metadata deployment hiện hành.
 
+Đã phát hành runtime `44e6189`, Sites version 24 và Pages `e6ce4932-75be-44b3-9e39-1356ce3d415f`. Build Sites đạt. Kiểm tra public chỉ đọc xác nhận nhãn/tooltip và phần Quy trình mới, không tràn ngang 320/390/1440px, không lỗi JavaScript hay ghi nghiệp vụ. Không tạo tài khoản/dữ liệu QA cho lần sửa này; page-view của admin không lưu vào log nghiên cứu. Giữ nguyên `dev`, audience public, environment revision 2 và D1/migrations.
+
 ## Bản ổn định 0.7.3 — 04/11/2026
 
 - **Bản chốt hiện hành:** runtime `a90491c18a2709857ea97c24436547b7b5a61c17`, tag `cp4-demo-v0.7.3-final` gồm code và tài liệu phát hành. Chỉnh thêm khoảng cách ghi công ảnh để không đè lên mép ảnh; đã xem lại ảnh chụp mobile và chạy lại delivery UI trên public đạt. [CI 41861017750](https://github.com/skunlainro3-glitch/TaskHub/actions/runs/41861017750) đạt đúng runtime cuối. Sites version **23**, source `aec62087c8bb0366f91460a5c9885b10757eb19e`, deployment `appgdep_6aeb53be73d88191bd9b7558957211ba`; Pages `525ce1ae-f6ea-436b-8682-2d326f9f6a2b`. Không đổi API/schema sau bản đầu dưới đây. Đối chiếu checksum nghiệp vụ sau bản chốt vẫn đạt; env/audience/D1 giữ nguyên.
