@@ -77,10 +77,15 @@ test('operations: atomic import, B2B seat ledger and private click records',asyn
       assert.equal((await request('/tours/'+tour.id,'DELETE',{version:tour.version},cookie)).status,409);
       assert.equal((await request('/pooling/export')).status,401);
       const exported=await request('/pooling/export','GET',null,cookie);assert.equal(exported.status,200);assert.ok(exported.body.includes("'=QA partner"));assert.ok(exported.body.includes('300000'));
+      const exportRows=csvRows(exported.body),exportHeader=exportRows.shift(),statusColumn=exportHeader.indexOf('status'),balanceColumn=exportHeader.indexOf('balance');
+      assert.equal(exportRows.find(row=>row[statusColumn]==='pending')[balanceColumn],'','A pending offer has no receivable');
+      assert.equal(exportRows.find(row=>row[statusColumn]==='confirmed')[balanceColumn],'300000');
       assert.equal((await request('/pooling/'+confirmed.id,'PATCH',{action:'payment',version:confirmed.version,paid:0},cookie)).status,200);
       confirmed=(await workspace()).pooling.find(p=>p.id===confirmed.id);
       assert.equal((await request('/pooling/'+confirmed.id,'PATCH',{action:'cancel',version:confirmed.version},cookie)).status,200);
       assert.equal((await workspace()).tours.find(t=>t.id===tour.id).reserved,2);
+      const cancelledRows=csvRows((await request('/pooling/export','GET',null,cookie)).body).slice(1);
+      assert.equal(cancelledRows.find(row=>row[statusColumn]==='cancelled')[balanceColumn],'','A cancelled offer must not export an outstanding debt');
       assert.equal((await request('/pooling/'+confirmed.id,'PATCH',{action:'confirm',version:confirmed.version+1,tour_version:tour.version},cookie)).status,409);
     });
     await t.test('click batches are private, deduplicated, bounded and never retain form values',async()=>{

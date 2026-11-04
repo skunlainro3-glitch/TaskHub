@@ -15,7 +15,7 @@ Không tự import dữ liệu khảo sát CP2 hoặc dữ liệu local lên clo
 
 ## 1. Tài khoản
 
-GitHub repo đã tồn tại với `dev` là nhánh chính và `build` là nhánh team sửa.
+GitHub repo dùng `dev` làm nhánh mặc định được bảo vệ và `main` là nhánh team sửa; mở PR `main → dev` để chủ repo duyệt trước khi phát hành.
 Nhánh `dev` yêu cầu review của `@skunlainro3-glitch`, CI `Validate` và giải quyết comment.
 CI chạy thủ công trên tài khoản mới đã thành công ở run `38620884849`, commit
 `22f3f24`. PR #1 được chủ repo duyệt và đã merge theo yêu cầu trực tiếp ngày

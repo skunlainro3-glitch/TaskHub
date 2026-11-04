@@ -1,5 +1,5 @@
 // Record controls and timing, never typed text, passwords, file names or form values.
-const labels=['Đóng','Xong','Hủy','Tạo tour','Lưu hành trình','Dùng nội dung tour','Danh mục Én Việt','Nhập Excel','Tải mẫu','Giao công việc','Xem cổng khách hàng','Cổng khách hàng','Về điều hành','Quản lý tour','Công việc','Tổng quan','Yêu cầu tư vấn','Phản hồi MVP','Gửi phản hồi','Gửi đánh giá','Thử tải lại','Xóa bộ lọc','Hướng dẫn & hỗ trợ','Đăng xuất','Ghi nhận thu','Xác nhận ghép','Hủy phiếu','Tạo phiếu ghép','Ghép tour B2B','Đối soát CSV'];
+const labels=['Đóng','Xong','Hủy','Tạo tour','Lưu hành trình','Dùng nội dung tour','Danh mục Én Việt','Nhập Excel','Tải mẫu','Giao công việc','Xem cổng khách hàng','Cổng khách hàng','Về điều hành','Quản lý tour','Công việc','Tổng quan','Yêu cầu tư vấn','Thử tải lại','Xóa bộ lọc','Đăng xuất','Ghi nhận thu','Xác nhận ghép','Hủy phiếu','Tạo phiếu ghép','Ghép tour B2B','Đối soát CSV'];
 const slug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 let active=null;
 export async function flushInteractions(){if(active)await active.flush();}

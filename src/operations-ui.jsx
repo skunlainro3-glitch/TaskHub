@@ -9,7 +9,10 @@ import {
   RefreshCw,
   ShieldCheck,
   Search,
+  Printer,
 } from "lucide-react";
+import { PrintPage } from "./print-page.jsx";
+import { downloadWorkbook } from "./export-file.mjs";
 import { readTourFile, downloadTourTemplate } from "./import-tours.mjs";
 import "./operations-polish.css";
 import { filterPooling } from "./pooling-view.mjs";
@@ -269,7 +272,7 @@ export function createOperationsUI({
       }
     }
     return (
-      <Modal title="Cập nhật số khách" subtitle={current.title} onClose={close}>
+      <Modal title="Cập nhật số khách" subtitle={current.title} onClose={close} busy={busy}>
         <form onSubmit={submit}>
           <ErrorBox error={error} />
           <ConflictRecovery
@@ -393,6 +396,7 @@ export function createOperationsUI({
             : "Ghi nhận thỏa thuận với đối tác; xác nhận chỗ ở bước tiếp theo."
         }
         onClose={close}
+        busy={busy}
       >
         <form onSubmit={submit}>
           <ErrorBox error={error} />
@@ -517,6 +521,8 @@ export function createOperationsUI({
   function Pooling({
     data,
     readOnly,
+    canManageDeals = !readOnly,
+    canRecordReceipts = !readOnly,
     onNew,
     onPayment,
     reload,
@@ -530,10 +536,28 @@ export function createOperationsUI({
       [history, setHistory] = useState(null);
     const [query, setQuery] = useState(""),
       [statusFilter, setStatusFilter] = useState("");
+    const [exporting, setExporting] = useState(false),
+      [exportError, setExportError] = useState("");
+    const exportPending = useRef(false);
     const pending = useRef(false);
     const pools = data.pooling || [],
       confirmed = pools.filter((p) => p.status === "confirmed"),
       tours = Object.fromEntries(data.tours.map((t) => [t.id, t]));
+    async function exportWorkbook(e) {
+      e.preventDefault();
+      if (exportPending.current) return;
+      exportPending.current = true;
+      setExporting(true);
+      setExportError("");
+      try {
+        await downloadWorkbook("/api/pooling/export.xlsx", "taskhub-cong-no.xlsx");
+      } catch (e) {
+        setExportError(e.message);
+      } finally {
+        exportPending.current = false;
+        setExporting(false);
+      }
+    }
     async function action(row, kind) {
       if (pending.current) return;
       pending.current = true;
@@ -585,7 +609,7 @@ export function createOperationsUI({
       const d = new Date(value);
       return Number.isNaN(d.valueOf())
         ? "Không rõ thời điểm"
-        : d.toLocaleString("vi-VN");
+        : d.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
     };
     return (
       <>
@@ -710,10 +734,30 @@ export function createOperationsUI({
             </Button>
           )}
           <div className="pool-export-actions">
+            <Button
+              variant="ghost"
+              onClick={() => window.print()}
+              data-track="pooling:print"
+            >
+              <Printer size={16} />
+              In / lưu công nợ PDF (theo bộ lọc)
+            </Button>
+            <a
+              className="btn ghost"
+              href="/api/pooling/export.xlsx"
+              data-track="pooling:export-xlsx"
+              onClick={exportWorkbook}
+              aria-busy={exporting}
+              aria-disabled={exporting}
+            >
+              <Download size={16} />
+              {exporting ? "Đang tải Excel…" : "Công nợ Excel (toàn bộ)"}
+            </a>
             <a
               className="btn ghost"
               href="/api/pooling/export"
               data-track="pooling:export"
+              title="Xuất toàn bộ phiếu trong không gian"
             >
               <Download size={16} />
               Đối soát CSV
@@ -722,15 +766,17 @@ export function createOperationsUI({
               className="btn ghost"
               href="/api/pooling/history/export"
               data-track="pooling:history-export"
+              title="Xuất toàn bộ lịch sử đối soát trong không gian"
             >
               <History size={16} />
               Lịch sử CSV
             </a>
           </div>
         </div>
+        <ErrorBox error={exportError} />
         <p className="muted pool-export-note">
-          CSV gồm toàn bộ phiếu trong không gian, không giới hạn theo bộ lọc
-          đang chọn.
+          Excel và CSV gồm toàn bộ phiếu trong không gian. PDF chỉ gồm các
+          phiếu theo bộ lọc đang chọn.
         </p>
         {!pools.length ? (
           <Empty title="Chưa có phiếu ghép tour">
@@ -738,7 +784,7 @@ export function createOperationsUI({
               Tạo phiếu từ thỏa thuận với đối tác. Không cần nhập dữ liệu khách
               hàng cá nhân.
             </span>
-            {!readOnly && (
+            {canManageDeals && (
               <span className="pool-empty-action">
                 <Button disabled={!data.tours.length} onClick={onNew}>
                   Tạo phiếu ghép
@@ -809,9 +855,9 @@ export function createOperationsUI({
                   </details>
                 )}
                 <div className="pool-card-actions">
-                  {!readOnly && p.status !== "cancelled" && (
+                  {p.status !== "cancelled" && (
                     <>
-                      {p.status === "pending" ? (
+                      {p.status === "pending" && canManageDeals && (
                         <Button
                           disabled={!!busy}
                           onClick={() => action(p, "confirm")}
@@ -820,7 +866,8 @@ export function createOperationsUI({
                           Xác nhận ghép
                           <Check size={16} />
                         </Button>
-                      ) : (
+                      )}
+                      {p.status === "confirmed" && canRecordReceipts && (
                         <Button
                           variant="ghost"
                           disabled={!!busy}
@@ -830,14 +877,16 @@ export function createOperationsUI({
                           Ghi nhận thu
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        disabled={!!busy || p.paid > 0}
-                        onClick={() => setCancel(p)}
-                        data-track="pooling:cancel"
-                      >
-                        Hủy phiếu
-                      </Button>
+                      {canManageDeals && (
+                        <Button
+                          variant="ghost"
+                          disabled={!!busy || p.paid > 0}
+                          onClick={() => setCancel(p)}
+                          data-track="pooling:cancel"
+                        >
+                          Hủy phiếu
+                        </Button>
+                      )}
                     </>
                   )}
                   <Button
@@ -851,7 +900,10 @@ export function createOperationsUI({
                     Lịch sử phiếu
                   </Button>
                   {!readOnly && p.paid > 0 && p.status !== "cancelled" && (
-                    <small>Phiếu còn tiền đã ghi nhận; kiểm tra đối soát thực tế trước khi hủy.</small>
+                    <small>
+                      Phiếu còn tiền đã ghi nhận; kiểm tra đối soát thực tế
+                      trước khi hủy.
+                    </small>
                   )}
                 </div>
               </article>
@@ -962,6 +1014,55 @@ export function createOperationsUI({
             </div>
           </Modal>
         )}
+        <PrintPage>
+          <strong>TaskHub · Đối soát tour ghép</strong>
+          <h1>Danh sách công nợ B2B</h1>
+          <p>
+            Lập lúc {new Date().toLocaleString("vi-VN",{timeZone:'Asia/Ho_Chi_Minh'})}. {visiblePools.length}/
+            {pools.length} phiếu theo bộ lọc đang chọn.
+            {simulated ? " DỮ LIỆU GIẢ LẬP, không phải giao dịch thật." : ""}
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Đối tác / tour</th>
+                <th>Ngày đi</th>
+                <th>Khách</th>
+                <th>Trạng thái</th>
+                <th>Thỏa thuận</th>
+                <th>Đã thu</th>
+                <th>Còn thu</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visiblePools.map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    {p.partner}
+                    <br />
+                    {p.tour_title}
+                  </td>
+                  <td>{date(p.departure)}</td>
+                  <td>{p.seats}</td>
+                  <td>{status[p.status]}</td>
+                  <td>{money(p.seats * p.unit_price)}</td>
+                  <td>{money(p.paid)}</td>
+                  <td>
+                    {p.status === "confirmed"
+                      ? money(p.seats * p.unit_price - p.paid)
+                      : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="print-note">
+            Chỉ phiếu đã xác nhận mới phát sinh khoản phải thu. Số thu là tổng
+            lũy kế do người có quyền ghi nhận; chưa xác minh giao dịch ngân
+            hàng, chưa phải hóa đơn. Bản PDF theo bộ lọc đang xem; Excel/CSV
+            xuất toàn bộ phiếu trong không gian.
+          </p>
+        </PrintPage>
       </>
     );
   }

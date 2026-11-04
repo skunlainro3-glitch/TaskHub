@@ -1,0 +1,73 @@
+.taskhub-print {
+  display: none;
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  body {
+    background: #fff !important;
+    color: #172e48 !important;
+    font:
+      11pt Arial,
+      sans-serif;
+  }
+  body > :not(.taskhub-print) {
+    display: none !important;
+  }
+  .taskhub-print {
+    display: block !important;
+    width: 100%;
+  }
+  .taskhub-print h1 {
+    font-size: 21pt;
+    margin: 12pt 0;
+  }
+  .taskhub-print h2 {
+    font-size: 14pt;
+    margin: 18pt 0 8pt;
+    break-after: avoid;
+  }
+  .taskhub-print p {
+    line-height: 1.6;
+    white-space: pre-line;
+  }
+  .taskhub-print table {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: auto;
+    margin: 12pt 0;
+    font-size: 9pt;
+  }
+  .taskhub-print th,
+  .taskhub-print td {
+    padding: 7pt 5pt;
+    border-bottom: 1px solid #c9d7e5;
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+  .taskhub-print th {
+    background: #edf4fc;
+  }
+  .taskhub-print tr {
+    break-inside: avoid;
+  }
+  .taskhub-print .print-note {
+    font-size: 9pt;
+    color: #445a73;
+    border-top: 1px solid #ccd9e5;
+    padding-top: 10pt;
+  }
+  .taskhub-print .money {
+    text-align: right;
+  }
+}

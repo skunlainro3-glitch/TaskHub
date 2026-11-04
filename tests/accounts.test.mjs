@@ -41,16 +41,16 @@ test('account links and team membership: secure tokens, additive data and safe w
       assert.deepEqual(await noMail.forgot(owner.email),await noMail.forgot('unknown@example.test'));
       assert.equal((await noMail.forgot(owner.email)).mail_ready,false);
       assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM account_tokens').get()).n,0);
-      assert.ok(!JSON.stringify(await noMail.requestVerification(owner)).includes('token'));
+      assert.equal(noMail.requestVerification,undefined);
+      assert.equal(noMail.confirmVerification,undefined);
     });
-    await t.test('verification links are hashed, expiring and single-use with no public token disclosure',async()=>{
-      const reply=await accounts.requestVerification(owner);assert.equal(reply.mail_ready,true);assert.ok(!('token' in reply));
-      const raw=new URL(messages.at(-1).text.split('\n')[0].split(': ').at(-1)).searchParams.get('verify');
+    await t.test('password reset links are hashed, expiring and never disclosed by the request API',async()=>{
+      const reply=await accounts.forgot(owner.email);assert.equal(reply.mail_ready,true);assert.ok(!('token' in reply));
+      const raw=new URL(messages.at(-1).text.split('\n')[0].split(': ').at(-1)).searchParams.get('reset');
       assert.equal(raw.length,64);const stored=await db.prepare('SELECT * FROM account_tokens').get();assert.equal(stored.token,digest(raw));assert.ok(!stored.token.includes(raw));
-      await accounts.requestVerification(owner);assert.equal(messages.length,1,'One account cannot flood verification emails within a minute');
-      await accounts.confirmVerification(raw);assert.equal((await accounts.security(owner)).email_verified,true);
-      await assert.rejects(accounts.confirmVerification(raw),rejection(400));
-      await assert.rejects(accounts.confirmVerification('bad'),rejection(400));
+      assert.equal(stored.purpose,'reset');assert.ok(stored.expires>Date.now() && stored.expires<=Date.now()+30*60000);
+      await accounts.forgot(owner.email);assert.equal(messages.length,1,'One account cannot flood reset emails within a minute');
+      assert.ok(!('email_verified' in await accounts.security(owner)));
     });
     await t.test('reset is one-use, invalidates sessions and preserves protected system credentials',async()=>{
       await accounts.forgot(owner.email);
@@ -61,7 +61,7 @@ test('account links and team membership: secure tokens, additive data and safe w
       assert.equal((await db.prepare('SELECT password FROM users WHERE id=?').get(owner.id)).password,hash('new-password'));
       assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM sessions WHERE user_id=?').get(owner.id)).n,0);
       await assert.rejects(accounts.reset(raw,'another-password'),rejection(400));
-      const before=messages.length;await accounts.forgot(admin.email);await accounts.requestVerification(admin);assert.equal(messages.length,before);
+      const before=messages.length;await accounts.forgot(admin.email);assert.equal(messages.length,before);
       await db.prepare('INSERT INTO account_tokens VALUES (?,?,?,?,NULL,?)').run(digest('a'.repeat(64)),admin.id,'reset',Date.now()+60000,now());
       await assert.rejects(accounts.reset('a'.repeat(64),'forbidden-password'),rejection(400));
       assert.equal((await db.prepare('SELECT password FROM users WHERE id=?').get(admin.id)).password,hash('before-password'));
@@ -161,8 +161,8 @@ test('shared staff API enforces viewer/editor permissions and excludes staff fro
     assert.ok((await request('/workspace','GET',null,owner.cookie)).body.tours.some(t=>t.id===tour.body.id));
     assert.equal((await request('/events','POST',{action:'portal_viewed'},staff.cookie)).status,200);
     assert.deepEqual((await request('/interactions','POST',{events:[{id:randomUUID(),kind:'click',control:'test',area:'workspace',at:now()}]},staff.cookie)).body,{count:0});
-    assert.equal((await request('/feedback','POST',{},staff.cookie)).status,400);
-    assert.equal((await request('/feedback/features','POST',{},staff.cookie)).status,403);
+    assert.equal((await request('/feedback','POST',{},staff.cookie)).status,404);
+    assert.equal((await request('/feedback/features','POST',{},staff.cookie)).status,404);
     const research=(await request('/research','GET',null,admin.cookie)).body;assert.equal(research.participants,1);assert.equal(research.events,1,'Only owner test_started is research data');
     assert.equal((await request('/account','DELETE',null,staff.cookie)).status,200);
     assert.equal((await request('/session','GET',null,staff.cookie)).body.user,null);

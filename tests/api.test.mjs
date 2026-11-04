@@ -102,7 +102,6 @@ test("MVP: consent, isolation, seat sync, concurrency, exports, persistence and 
           ["/tasks", "POST", {}],
           ["/tasks/nonexistent", "PATCH", { status: "done" }],
           ["/inquiries/fake", "PATCH", { status: "closed" }],
-          ["/feedback", "POST", {}],
           ["/account", "DELETE", {}],
           ["/public/agency/inquiries", "POST", {}],
         ])
@@ -184,6 +183,14 @@ test("MVP: consent, isolation, seat sync, concurrency, exports, persistence and 
     );
     const a = await request("/register", "POST", participant("TesterA")),
       b = await request("/register", "POST", participant("TesterB"));
+    await t.test("retired email verification cannot send mail or change the account profile", async () => {
+      const before = await request("/account/security", "GET", null, a.cookie);
+      for (const path of ["/account/verification/request", "/account/verification/confirm"]) {
+        const response = await request(path, "POST", { token: "2".repeat(64) }, a.cookie);
+        assert.equal(response.status, 404);
+      }
+      assert.deepEqual((await request("/account/security", "GET", null, a.cookie)).body, before.body);
+    });
     await t.test(
       "duplicate concurrent signups return a conflict without orphan data",
       async () => {
@@ -217,17 +224,20 @@ test("MVP: consent, isolation, seat sync, concurrency, exports, persistence and 
       assert.deepEqual((await request('/public/'+ws)).body.tours, []);
       assert.deepEqual((await request('/public/agency')).body.tours, []);
     });
-    await t.test('reference catalog is available without creating offers or accepting unconfirmed bookings', async () => {
+    await t.test('reference catalog is operator-only and absent from public and polling data', async () => {
       const root = (await request('/public/agency')).body;
-      assert.equal(root.catalog.tours.length,13);
-      assert.equal(root.catalog.tours.find(t=>t.code==='EVG-TQ11').price,null);
-      assert.equal((await request('/public/'+ws)).body.catalog,null);
+      assert.equal(Object.hasOwn(root,'catalog'),false);
+      assert.equal(Object.hasOwn((await request('/public/'+ws)).body,'catalog'),false);
+      assert.equal((await request('/catalog')).status,401);
+      const catalog = (await request('/catalog','GET',null,ac)).body;
+      assert.equal(catalog.tours.length,13);
+      assert.equal(catalog.tours.find(t=>t.code==='EVG-TQ11').price,null);
       const own = (await request('/workspace','GET',null,ac)).body;
-      assert.equal(own.catalog.tours.length,13);
+      assert.equal(Object.hasOwn(own,'catalog'),false);
       assert.deepEqual(own.tours,[]);
       assert.ok(own.activity.every(e => e.action === 'test_started'));
       assert.equal((await request('/public/agency/inquiries','POST',{
-        tour_id:root.catalog.tours[0].id,name:'QA',email:'qa@example.test',people:1,consent:true
+        tour_id:catalog.tours[0].id,name:'QA',email:'qa@example.test',people:1,consent:true
       })).status,404);
       assert.equal((await request('/tours','POST',{...qaTour,departure:'Hàng tuần',capacity:null},ac)).status,400);
     });
@@ -363,9 +373,9 @@ test("MVP: consent, isolation, seat sync, concurrency, exports, persistence and 
       assert.equal(created.status, 201);
       taskId = created.body.id;
       assert.equal(
-        (await request("/tasks/" + taskId, "PATCH", { status: "done" }, bc))
+        (await request("/tasks/" + taskId, "PATCH", { status: "done", version: 1 }, bc))
           .status,
-        404,
+        409,
       );
       assert.equal(
         (await request("/tasks/" + taskId, "PATCH", { status: "invalid" }, ac))
@@ -373,7 +383,7 @@ test("MVP: consent, isolation, seat sync, concurrency, exports, persistence and 
         400,
       );
       assert.equal(
-        (await request("/tasks/" + taskId, "PATCH", { status: "done" }, ac))
+        (await request("/tasks/" + taskId, "PATCH", { status: "done", version: 1 }, ac))
           .status,
         200,
       );
@@ -415,6 +425,27 @@ test("MVP: consent, isolation, seat sync, concurrency, exports, persistence and 
         );
       },
     );
+    await t.test('inquiry versions prevent stale, duplicate, concurrent and cycled-status overwrites', async () => {
+      const state = async () => (await request('/workspace','GET',null,ac)).body.inquiries[0];
+      const original = await state();
+      assert.equal(original.version,1);
+      const path = '/inquiries/' + original.id;
+      assert.equal((await request(path,'PATCH',{status:'closed'},ac)).status,400);
+      assert.equal((await request(path,'PATCH',{status:'closed',version:original.version},bc)).status,404);
+      assert.equal((await request(path,'PATCH',{status:'closed',version:original.version+1},ac)).status,409);
+      const race = await Promise.all(['contacted','closed'].map(status => request(path,'PATCH',{status,version:original.version},ac)));
+      assert.deepEqual(race.map(r=>r.status).sort(),[200,409]);
+      const first = await state();
+      assert.equal(first.version,2);
+      assert.equal((await request(path,'PATCH',{status:'new',version:original.version},ac)).status,409);
+      assert.equal((await state()).status,first.status,'Rejected stale write preserves the saved status');
+      assert.equal((await request(path,'PATCH',{status:'new',version:first.version},ac)).status,200);
+      const cycled = await state();
+      assert.equal(cycled.status,original.status);
+      assert.equal(cycled.version,3);
+      assert.equal((await request(path,'PATCH',{status:'closed',version:original.version},ac)).status,409,'Returning to the same status must not make an old snapshot current');
+      assert.equal((await state()).version,3);
+    });
     const feedback = {
       portal: 4,
       operations: 5,
@@ -430,57 +461,31 @@ test("MVP: consent, isolation, seat sync, concurrency, exports, persistence and 
       password: "Test-admin-secret-2026!",
     });
     await t.test(
-      "feedback is real, upserted once, CSV protected and formula-safe",
+      "retired feedback APIs cannot write; protected historical CSV stays formula-safe",
       async () => {
-        assert.equal(
-          (await request("/feedback", "POST", { ...feedback, ease: 8 }, ac))
-            .status,
-          400,
-        );
-        assert.equal(
-          (await request("/feedback", "POST", feedback, ac)).status,
-          200,
-        );
-        assert.equal(
-          (await request("/feedback", "POST", feedback, ac)).status,
-          200,
-        );
-        const research = (await request("/research", "GET", null, admin.cookie))
-          .body;
-        assert.equal(research.participants, 2);
-        assert.equal(research.feedback.length, 1);
-        assert.equal(research.readyToReview, 0);
-        assert.equal(research.feedback[0].has_test_flow, 0);
-        await request("/events", "POST", { action: "portal_viewed" }, ac);
-        // Interaction after feedback must not qualify an earlier response.
-        const beforeResubmit = (
-          await request("/research", "GET", null, admin.cookie)
-        ).body;
-        assert.equal(beforeResubmit.readyToReview, 0);
-        await request("/feedback", "POST", feedback, ac);
-        const afterResubmit = (
-          await request("/research", "GET", null, admin.cookie)
-        ).body;
-        assert.equal(afterResubmit.readyToReview, 1);
-        assert.equal(afterResubmit.feedback[0].has_test_flow, 1);
-        const csv = await request(
-          "/export/feedback",
-          "GET",
-          null,
-          admin.cookie,
-        );
-        assert.equal(csv.status, 200);
-        assert.match(csv.body, /testera@example.test/);
-        assert.ok(csv.body.includes("'=HYPERLINK"));
-        assert.ok(!csv.body.includes("password"));
-        const before = (await request("/research", "GET", null, admin.cookie))
-          .body.events;
-        await request("/public/" + ws);
-        await request("/public/" + ws);
-        assert.equal(
-          (await request("/research", "GET", null, admin.cookie)).body.events,
-          before,
-        );
+        for(const route of ['/feedback','/feedback/features']) {
+          assert.equal((await request(route,'POST',feedback,ac)).status,404);
+          assert.equal((await request(route,'POST',feedback)).status,404);
+        }
+        // Fixture models a row collected before the form was removed.
+        const raw = new DatabaseSync(join(dir,'taskhub.sqlite'));
+        raw.prepare('INSERT INTO feedback VALUES (?,?,?,?,?,?,?,?,?,?)').run(a.body.user.id,feedback.portal,feedback.operations,feedback.sync,feedback.ease,feedback.intent,feedback.price,feedback.liked,feedback.disliked,'2000-01-01T00:00:00.000Z');
+        raw.close();
+        const research = (await request('/research','GET',null,admin.cookie)).body;
+        assert.equal(research.participants,2);assert.equal(research.feedback.length,1);
+        assert.equal(research.feedback[0].has_test_flow,0);assert.equal(research.readyToReview,0);
+        await request('/events','POST',{action:'portal_viewed'},ac);
+        assert.equal((await request('/feedback','POST',feedback,ac)).status,404);
+        const archived = (await request('/research','GET',null,admin.cookie)).body;
+        assert.equal(archived.feedback[0].created,'2000-01-01T00:00:00.000Z');
+        assert.equal(archived.readyToReview,0,'Later interactions cannot qualify an older response');
+        const csv = await request('/export/feedback','GET',null,admin.cookie);
+        assert.equal(csv.status,200);assert.match(csv.body,/testera@example.test/);
+        assert.ok(csv.body.includes("'=HYPERLINK"));assert.ok(!csv.body.includes('password'));
+        assert.equal((await request('/export/feedback','GET',null,ac)).status,403);
+        const before=(await request('/research','GET',null,admin.cookie)).body.events;
+        await request('/public/'+ws);await request('/public/'+ws);
+        assert.equal((await request('/research','GET',null,admin.cookie)).body.events,before);
       },
     );
     await t.test(
@@ -490,7 +495,8 @@ test("MVP: consent, isolation, seat sync, concurrency, exports, persistence and 
         await start();
         const after = (await request("/workspace", "GET", null, ac)).body;
         assert.equal(after.tasks.find((t) => t.id === taskId).status, "done");
-        assert.equal(after.feedback.price, 0);
+        assert.equal(Object.hasOwn(after,'feedback'),false);
+        assert.equal((await request('/research','GET',null,admin.cookie)).body.feedback[0].price,0);
         assert.equal(after.inquiries.length, 1);
         assert.equal((await request("/logout", "POST", {}, bc)).status, 200);
         assert.equal(

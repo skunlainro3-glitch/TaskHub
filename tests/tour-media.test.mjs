@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { TOUR_PHOTOS, destinationPhoto, resolveTourMedia, safeImageUrl } from "../src/tour-media-data.mjs";
+import {tourImageVariants,unavailableTourImageSources} from '../src/tour-image-variants.mjs';
 
 test("destination photos match Vietnamese accents without using unrelated theme defaults", () => {
   assert.equal(destinationPhoto({ destination: "Đà Nẵng - Hội An" }).key, "hoi-an");
@@ -9,6 +10,17 @@ test("destination photos match Vietnamese accents without using unrelated theme 
   assert.equal(destinationPhoto({ title: "Quy Nhơn - Kỳ Co - Eo Gió", destination: "Việt Nam" }).key, "quy-nhon");
   assert.equal(destinationPhoto({ destination: "Nhật Bản", title: "Hội An và Tokyo", theme: "danang" }), null);
   assert.equal(destinationPhoto({ destination: "Thái Lan", theme: "danang" }), null);
+});
+
+test('responsive assets use real WebP files and known missing source photos skip network retries',()=>{
+  for(const photo of TOUR_PHOTOS){
+    const variant=tourImageVariants[photo.image];assert.ok(variant.srcSet.includes('480w'));
+    const file=readFileSync(new URL('../public'+variant.image,import.meta.url));assert.equal(file.subarray(8,12).toString(),'WEBP');
+    assert.ok(file.length<readFileSync(new URL('../public'+photo.image,import.meta.url)).length);
+    assert.equal(resolveTourMedia({destination:photo.destinations[0]}).image,variant.image);
+    assert.equal(resolveTourMedia({destination:photo.destinations[0]},[variant.image]).image,photo.image);
+  }
+  assert.equal(resolveTourMedia({destination:'Trung Quốc',sourceImage:unavailableTourImageSources[0]}),null);
 });
 
 test("provided source images take precedence and failure has an honest destination-specific fallback", () => {

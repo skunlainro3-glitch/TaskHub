@@ -3,13 +3,11 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
-import { randomUUID } from 'node:crypto';
 import { openDatabase } from '../server/db.mjs';
 import { loadDemoWorkspace, demoScenario } from '../server/demo.mjs';
-import { startFeatureTrial, finishFeatureTrial, ownFeatureTrials, trialExportRows, trialResearchSummary } from '../server/trials.mjs';
 
 async function fixture(run) {
-  const root = resolve(tmpdir()), dir = mkdtempSync(join(root, 'taskhub-demo-trials-'));
+  const root = resolve(tmpdir()), dir = mkdtempSync(join(root, 'taskhub-demo-'));
   const previous = { url: process.env.TURSO_DATABASE_URL, required: process.env.REQUIRE_REMOTE_DB };
   process.env.TURSO_DATABASE_URL = process.env.TEST_DATABASE_DRIVER === 'libsql' ? 'file::memory:' : '';
   process.env.REQUIRE_REMOTE_DB = '0';
@@ -27,7 +25,7 @@ async function fixture(run) {
     db?.close();
     if (previous.url === undefined) delete process.env.TURSO_DATABASE_URL; else process.env.TURSO_DATABASE_URL = previous.url;
     if (previous.required === undefined) delete process.env.REQUIRE_REMOTE_DB; else process.env.REQUIRE_REMOTE_DB = previous.required;
-    assert.ok(dir.startsWith(root + sep + 'taskhub-demo-trials-'));
+    assert.ok(dir.startsWith(root + sep + 'taskhub-demo-'));
     rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   }
 }
@@ -61,7 +59,6 @@ test('optional sample data is isolated, explicit, seat-consistent and idempotent
   await db.prepare('UPDATE tours SET title=? WHERE id=?').run('Owner edit to keep', tours[0].id);
   assert.equal((await loadDemoWorkspace(db, user)).already_loaded, true);
   assert.equal((await db.prepare('SELECT title FROM tours WHERE id=?').get(tours[0].id)).title, 'Owner edit to keep');
-  assert.equal((await trialResearchSummary(db)).participants_started, 0, 'Loading examples is not a timed trial or tester evidence');
 }));
 
 test('sample loading rejects existing business records and system/staff/consent bypasses', async () => fixture(async ({ db, user, addUser }) => {
@@ -88,70 +85,3 @@ test('sample data batch rolls back all inventory, audit and marker if any write 
   assert.equal(await count(db, 'tours'), demoScenario.tours.length);
 }));
 
-test('trial timing uses server timestamps, is private, and rejects invalid/overwritten outcomes', async () => fixture(async ({ db, user, other }) => {
-  const id = randomUUID();
-  const started = await startFeatureTrial(db, user, { trial_id: id, feature: 'pooling', started_at: '2000-01-01', duration_ms: 99999 });
-  assert.ok(Date.parse(started.started_at) > Date.parse('2026-01-01'));
-  assert.equal(started.duration_ms, null);
-  assert.equal((await ownFeatureTrials(db, user)).active.id, id);
-  assert.equal((await ownFeatureTrials(db, other)).trials.length, 0);
-  assert.equal((await startFeatureTrial(db, user, { trial_id: id, feature: 'pooling' })).started_at, started.started_at);
-  await assert.rejects(startFeatureTrial(db, user, { trial_id: randomUUID(), feature: 'operations' }), e => e.status === 409);
-  await assert.rejects(startFeatureTrial(db, other, { trial_id: id, feature: 'pooling' }), e => e.status === 409);
-  await assert.rejects(finishFeatureTrial(db, other, id, { result: 'completed' }), e => e.status === 404);
-  await assert.rejects(finishFeatureTrial(db, user, id, { result: 'success' }), e => e.status === 400);
-  const completed = await finishFeatureTrial(db, user, id, { result: 'assisted', duration_ms: 99999, finished_at: '2000-01-01' });
-  assert.equal(completed.result, 'assisted');
-  assert.equal(completed.duration_ms, Date.parse(completed.finished_at) - Date.parse(started.started_at));
-  assert.notEqual(completed.duration_ms, 99999);
-  assert.equal((await finishFeatureTrial(db, user, id, { result: 'assisted' })).finished_at, completed.finished_at);
-  await assert.rejects(finishFeatureTrial(db, user, id, { result: 'completed' }), e => e.status === 409);
-  assert.equal((await ownFeatureTrials(db, user)).active, null);
-  assert.equal(await count(db, 'events'), 2);
-  const exported = await trialExportRows(db);
-  assert.equal(exported.length, 1);
-  assert.equal(exported[0].email, 'owner@example.test');
-  assert.equal(exported[0].result, 'assisted');
-}));
-
-test('parallel trial starts/finishes keep one active trial and one immutable result', async () => fixture(async ({ db, user }) => {
-  const starts = await Promise.allSettled(['portal', 'sync'].map(feature => startFeatureTrial(db, user, { trial_id: randomUUID(), feature })));
-  assert.equal(starts.filter(r => r.status === 'fulfilled').length, 1);
-  assert.equal(starts.filter(r => r.status === 'rejected' && r.reason.status === 409).length, 1);
-  const active = (await ownFeatureTrials(db, user)).active;
-  const finishes = await Promise.allSettled(['completed', 'incomplete'].map(result => finishFeatureTrial(db, user, active.id, { result })));
-  assert.equal(finishes.filter(r => r.status === 'fulfilled').length, 1);
-  assert.equal(finishes.filter(r => r.status === 'rejected' && r.reason.status === 409).length, 1);
-  assert.equal(await count(db, 'events'), 2);
-  await assert.rejects(startFeatureTrial(db, user, { trial_id: 'invalid', feature: 'portal' }), e => e.status === 400);
-  await assert.rejects(startFeatureTrial(db, user, { trial_id: randomUUID(), feature: 'future-feature' }), e => e.status === 400);
-}));
-
-test('trial reports count participants separately from attempts and exclude staff/system/long idle timings', async () => fixture(async ({ db, user, other, addUser }) => {
-  const runs = [];
-  for (const [actor, result] of [[user, 'completed'], [user, 'incomplete'], [other, 'assisted']]) {
-    const id = randomUUID();
-    await startFeatureTrial(db, actor, { trial_id: id, feature: 'portal' });
-    await finishFeatureTrial(db, actor, id, { result });
-    runs.push(id);
-  }
-  const early = '2026-01-01T00:00:00.000Z', late = '2026-01-01T03:00:00.000Z';
-  await db.prepare('UPDATE events SET created=? WHERE id=?').run(early, runs[2]);
-  await db.prepare('UPDATE events SET created=? WHERE id=?').run(late, runs[2] + ':finish');
-  const summary = await trialResearchSummary(db);
-  assert.equal(summary.participants_started, 2);
-  assert.equal(summary.participants_finished, 2);
-  assert.equal(summary.trials_finished, 3);
-  const portal = summary.features.find(f => f.feature === 'portal');
-  assert.equal(portal.participants, 2);
-  assert.equal(portal.duration_sample_count, 2, 'Long idle trial retained, excluded from mean');
-  assert.deepEqual([portal.completed, portal.assisted, portal.incomplete], [1, 1, 1]);
-  assert.ok((await trialExportRows(db)).find(row => row.trial_id === runs[2]).timing_note.includes('2 giờ'));
-  await db.prepare("UPDATE users SET role='staff' WHERE id=?").run(other.id);
-  assert.equal((await trialResearchSummary(db)).participants_finished, 1);
-  for (const role of ['admin', 'reviewer', 'staff']) {
-    const actor = await addUser('excluded-' + role, 'agency', role);
-    for (const fn of [() => startFeatureTrial(db, actor, { trial_id: randomUUID(), feature: 'portal' }), () => ownFeatureTrials(db, actor), () => finishFeatureTrial(db, actor, runs[0], { result: 'completed' })])
-      await assert.rejects(fn(), e => e.status === 403);
-  }
-}));

@@ -1,14 +1,63 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ArrowRight, ShieldCheck, Users, Copy } from "lucide-react";
 import "./accounts.css";
+import { departmentNames } from '../shared/access.mjs';
 export function createAccountUI({
   Modal,
   Button,
   Field,
   ErrorBox,
   Badge,
+  Logo,
   api,
 }) {
+  function OperationsEntry({ onAuth, onPortal }) {
+    return (
+      <div className="operations-entry">
+        <header className="portal-nav">
+          <a className="plain-link" href="/" aria-label="Cổng khách hàng">
+            <Logo />
+          </a>
+          <Button variant="ghost" onClick={onPortal}>
+            Xem cổng khách hàng <ArrowRight size={16} />
+          </Button>
+        </header>
+        <main className="operations-entry-main">
+          <section className="operations-entry-intro">
+            <div className="eyebrow blue">KHÔNG GIAN ĐIỀU HÀNH</div>
+            <h1>Điều hành tour cùng TaskHub</h1>
+            <p>
+              Quản lý tour, lịch khởi hành, công việc và phiếu ghép B2B trong
+              không gian của đội ngũ. Đăng nhập để tiếp tục làm việc.
+            </p>
+            <Button onClick={() => onAuth("login")} data-track="operator:login">
+              Đăng nhập <ArrowRight size={17} />
+            </Button>
+            <p className="operations-entry-hint">
+              Khách hàng có thể xem tour và gửi yêu cầu tư vấn trên cổng khách
+              hàng mà không cần đăng nhập.
+            </p>
+          </section>
+          <section className="portal-cta" aria-label="Giới thiệu cho điều hành">
+            <div>
+              <div className="eyebrow">
+                DÀNH CHO DOANH NGHIỆP LỮ HÀNH 10–50 NHÂN SỰ
+              </div>
+              <h2>Quản lý lịch, số chỗ và công việc tại một nơi.</h2>
+              <p>
+                Tập trung lịch, số chỗ và công việc để người điều hành theo dõi.
+                Khách hàng tra cứu thông tin đã công khai trên một cổng riêng.
+              </p>
+            </div>
+            <Button variant="light" onClick={() => onAuth("register")}>
+              Dùng thử TaskHub <ArrowRight size={17} />
+            </Button>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
   function Auth({ mode, setMode, onClose, onUser }) {
     const [error, setError] = useState(""),
       [busy, setBusy] = useState(false);
@@ -43,8 +92,8 @@ export function createAccountUI({
         busy={busy}
         title={
           register
-            ? "Cùng thử một cách làm việc mới"
-            : "Chào mừng anh/chị trở lại"
+            ? "Tạo không gian dùng thử"
+            : "Đăng nhập TaskHub"
         }
         subtitle={
           register
@@ -62,7 +111,7 @@ export function createAccountUI({
                 autoComplete="name"
                 required
                 maxLength="80"
-                placeholder="Anh/chị muốn được gọi là gì?"
+                placeholder="Nhập tên của bạn"
               />
             </Field>
           )}
@@ -80,7 +129,7 @@ export function createAccountUI({
             label="Mật khẩu"
             hint={
               register
-                ? "Tối thiểu 8 ký tự. Email nhập tại đây chưa được xác minh."
+                ? "Tối thiểu 8 ký tự."
                 : undefined
             }
           >
@@ -125,8 +174,8 @@ export function createAccountUI({
                 <ShieldCheck size={20} />
                 <p>
                   Nhóm TaskHub thu email, vai trò, quy mô, phản hồi và lịch sử
-                  thao tác trong MVP, gồm nút/menu, thời gian bấm và thời gian
-                  bài thử do bạn chủ động bắt đầu, để đánh giá CP3. Không ghi
+                  thao tác trong MVP, gồm nút/menu và thời gian bấm, để đánh
+                  giá CP3. Không ghi
                   nội dung bạn gõ hoặc mật khẩu. Dữ liệu lưu tối đa khoảng 6
                   tháng, nhóm và giảng viên được xem; email không xuất hiện trên
                   cổng tour công khai. Không nhập thông tin khách hàng thật
@@ -249,8 +298,7 @@ export function createAccountUI({
       [busy, setBusy] = useState(false),
       [error, setError] = useState(""),
       [done, setDone] = useState(false);
-    const invite = link.kind === "invite",
-      verify = link.kind === "verify";
+    const invite = link.kind === "invite";
     useEffect(() => {
       let mounted = true;
       if (invite)
@@ -273,11 +321,7 @@ export function createAccountUI({
       try {
         const form = Object.fromEntries(new FormData(e.target));
         const r = await api(
-          invite
-            ? "/team/invites/accept"
-            : verify
-              ? "/account/verification/confirm"
-              : "/password/reset",
+          invite ? "/team/invites/accept" : "/password/reset",
           "POST",
           { ...form, token: link.token, consent: form.consent === "on" },
         );
@@ -297,11 +341,7 @@ export function createAccountUI({
     return (
       <Modal
         title={
-          invite
-            ? "Tham gia không gian làm việc"
-            : verify
-              ? "Xác minh email"
-              : "Đặt mật khẩu mới"
+          invite ? "Tham gia không gian làm việc" : "Đặt mật khẩu mới"
         }
         onClose={onClose}
         busy={busy}
@@ -310,9 +350,7 @@ export function createAccountUI({
         {done ? (
           <>
             <p className="success" role="status">
-              {verify
-                ? "Email đã được xác minh."
-                : "Đã đổi mật khẩu. Hãy đăng nhập lại bằng mật khẩu mới."}
+              Đã đổi mật khẩu. Hãy đăng nhập lại bằng mật khẩu mới.
             </p>
             <Button onClick={onClose}>Xong</Button>
           </>
@@ -327,7 +365,7 @@ export function createAccountUI({
                     Không gian <strong>{info.workspace_name}</strong> ·{" "}
                     {info.permission === "editor"
                       ? "Được chỉnh sửa"
-                      : "Chỉ xem"}
+                      : "Chỉ xem"} · {departmentNames[info.department] || 'Nhân viên tổng hợp'}
                     . Lời mời dành cho {info.email_hint}.
                   </p>
                   <Field label="Tên hiển thị">
@@ -351,7 +389,7 @@ export function createAccountUI({
                   </Field>
                 </>
               ))}
-            {!verify && (!invite || info) && (
+            {(!invite || info) && (
               <Field
                 label={invite ? "Mật khẩu tài khoản nhân viên" : "Mật khẩu mới"}
                 hint="Tối thiểu 8 ký tự."
@@ -383,28 +421,19 @@ export function createAccountUI({
                 </span>
               </label>
             )}
-            {verify && (
-              <p>
-                Nhấn xác nhận để chứng minh bạn có quyền truy cập email này. Xác
-                minh email không thay thế việc kiểm tra danh tính người tham
-                gia.
-              </p>
-            )}
             <Button disabled={busy || (invite && !info)}>
               {busy
                 ? "Đang xử lý…"
                 : invite
                   ? "Tham gia"
-                  : verify
-                    ? "Xác nhận email"
-                    : "Lưu mật khẩu mới"}
+                  : "Lưu mật khẩu mới"}
             </Button>
           </form>
         )}
       </Modal>
     );
   }
-  function AccountSettings({ user, notify, onUser }) {
+  function AccountSettings({ user, notify, onUser, onDelete }) {
     const [security, setSecurity] = useState(null),
       [team, setTeam] = useState(null),
       [error, setError] = useState(""),
@@ -467,49 +496,10 @@ export function createAccountUI({
           <p>
             Quyền:{" "}
             {permissionLabel(
-              security?.workspace_permission || user.workspace_permission,
+              user.workspace_permission || security?.workspace_permission,
             )}
+            {user.role==='staff' && ' · '+(departmentNames[user.department || security?.department] || 'Nhân viên tổng hợp')}
             .
-          </p>
-          <div className="account-security">
-            <Badge tone={security?.email_verified ? "blue" : "gray"}>
-              {security?.email_verified
-                ? "Email đã xác minh"
-                : "Email chưa xác minh"}
-            </Badge>
-            {!["admin", "reviewer"].includes(user.role) &&
-              !security?.email_verified && (
-                <Button
-                  variant="ghost"
-                  disabled={!!busy || !security?.mail_ready}
-                  onClick={() =>
-                    act("verify", async () => {
-                      const r = await api(
-                        "/account/verification/request",
-                        "POST",
-                        {},
-                      );
-                      notify(
-                        r.message ||
-                          "Nếu đủ điều kiện, email xác minh sẽ được gửi.",
-                      );
-                    })
-                  }
-                >
-                  Gửi email xác minh
-                </Button>
-              )}
-          </div>
-          {security && !security.mail_ready && (
-            <p className="muted">
-              Hệ thống chưa kết nối dịch vụ gửi email. Xác minh email và khôi
-              phục mật khẩu qua email sẽ khả dụng sau khi cấu hình; TaskHub
-              không tự đánh dấu email là đã xác minh.
-            </p>
-          )}
-          <p className="muted">
-            Không gian dùng thử lưu dữ liệu tối đa khoảng 6 tháng. Xóa tài khoản
-            tại Hướng dẫn & hỗ trợ; dữ liệu đã xuất cần nhóm xóa riêng.
           </p>
         </section>
         {security?.can_manage_team && (
@@ -553,6 +543,11 @@ export function createAccountUI({
                   placeholder="nhanvien@congty.vn"
                 />
               </Field>
+              <Field label="Vai trò nhân viên">
+                <select name="department" defaultValue="operations" disabled={!!busy}>
+                  {Object.entries(departmentNames).map(([id,label])=><option key={id} value={id}>{label}</option>)}
+                </select>
+              </Field>
               <Field label="Quyền truy cập">
                 <select
                   name="permission"
@@ -567,6 +562,7 @@ export function createAccountUI({
                 {busy === "invite" ? "Đang tạo…" : "Tạo lời mời"}
               </Button>
             </form>
+            <p className="invite-hint">Vai trò giới hạn nghiệp vụ; quyền xem/sửa được chọn riêng.</p>
             {invite && (
               <div className="invite-result" role="status">
                 <strong>Liên kết dành cho {invite.email}</strong>
@@ -607,6 +603,10 @@ export function createAccountUI({
                   </div>
                   {m.role === "staff" ? (
                     <>
+                      <select aria-label={'Vai trò của '+m.name} value={m.department || 'general'} disabled={!!busy}
+                        onChange={e=>act(m.id,()=>api('/team/members/'+m.id,'PATCH',{department:e.target.value}))}>
+                        {Object.entries(departmentNames).map(([id,label])=><option key={id} value={id}>{label}</option>)}
+                      </select>
                       <select
                         aria-label={"Quyền của " + m.name}
                         value={
@@ -655,7 +655,7 @@ export function createAccountUI({
                     <div>
                       <strong>{i.email}</strong>
                       <small>
-                        {permissionLabel(i.permission)} · hết hạn{" "}
+                        {departmentNames[i.department] || 'Nhân viên tổng hợp'} · {permissionLabel(i.permission)} · hết hạn{" "}
                         {new Date(i.expires).toLocaleString("vi-VN")}
                       </small>
                     </div>
@@ -677,8 +677,33 @@ export function createAccountUI({
             )}
           </section>
         )}
+
+        {["admin", "reviewer"].includes(user.role) && (
+          <section className="panel account-panel">
+            <h3>Dữ liệu kiểm thử</h3>
+            <a className="btn ghost" href="/api/export/events">Nhật ký thao tác CSV</a>
+            <details className="account-data">
+              <summary>Bản xuất khảo sát đã lưu</summary>
+              <p>Chỉ đọc dữ liệu cũ. Khảo sát mới thực hiện bằng biểu mẫu riêng của nhóm.</p>
+              <a className="text-btn" href="/api/export/survey-testers">Người thử CSV</a>
+              <a className="text-btn" href="/api/export/survey-features">Đánh giá tính năng CSV</a>
+              <a className="text-btn" href="/api/export/feedback">Phản hồi cũ CSV</a>
+            </details>
+          </section>
+        )}
+        {!["admin", "reviewer"].includes(user.role) && (
+          <section className="panel account-panel">
+            <details className="account-data">
+              <summary>Xóa tài khoản</summary>
+              <p>{user.role === "staff" ? "Dữ liệu nghiệp vụ chung của đội ngũ được giữ lại." : "Xóa toàn bộ dữ liệu của không gian này. Thao tác không thể hoàn tác."}</p>
+              <Button variant="danger" onClick={onDelete} data-track="account:delete">
+                {user.role === "staff" ? "Xóa tài khoản nhân viên của tôi" : "Xóa tài khoản và dữ liệu dùng thử"}
+              </Button>
+            </details>
+          </section>
+        )}
       </div>
     );
   }
-  return { Auth, AccountLink, AccountSettings };
+  return { Auth, AccountLink, AccountSettings, OperationsEntry };
 }

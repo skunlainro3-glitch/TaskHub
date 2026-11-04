@@ -107,6 +107,7 @@ try {
   await page.waitForTimeout(300);
   await nav("tours");
   await page.locator(".card-title").filter({ hasText: first.title }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Sửa tour", exact: true }).click();
   await page.getByRole("button", { name: "Xóa tour", exact: true }).click();
   assert.ok(
     await page
@@ -128,6 +129,7 @@ try {
   assert.equal(deletes, 0);
   await nav("tours");
   await page.locator(".card-title").filter({ hasText: first.title }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Sửa tour", exact: true }).click();
   await page.getByRole("button", { name: "Xóa tour", exact: true }).click();
   await page
     .getByRole("button", { name: "Ngừng công khai tour", exact: true })
@@ -151,19 +153,11 @@ try {
   assert.equal(await logo.getAttribute("href"), "/portal/" + user.workspace);
   await logo.click();
   assert.equal(new URL(page.url()).pathname, "/portal/" + user.workspace);
-  await page.goto(base); // The reference catalogue belongs to agency, never the private workspace.
-  const toggle = page.locator('[data-track="portal:toggle-reference"]');
-  await toggle.waitFor();
-  assert.equal(await toggle.getAttribute("aria-expanded"), "false");
-  assert.ok(!(await page.locator(".catalog-card").first().isVisible()));
-  await toggle.click();
-  await page.locator(".catalog-card").last().waitFor();
-  await toggle.click();
-  assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+  await page.goto(base);
+  await page.getByRole("heading", { name: "Cổng thông tin tour", exact: true }).waitFor();
+  assert.equal(await page.locator('.reference-catalog,.catalog-card,[data-track="portal:toggle-reference"]').count(), 0);
   await page.getByLabel("Tìm tour", { exact: true }).fill("EVG-TQ01");
-  await page.locator(".catalog-card").first().waitFor();
-  assert.equal(await toggle.getAttribute("aria-expanded"), "true");
-  assert.equal(await page.locator(".catalog-card").count(), 1);
+  await page.getByRole("heading", { name: "Chưa có hành trình phù hợp", exact: true }).waitFor();
   await page.getByRole("button", { name: "Xóa bộ lọc", exact: true }).click();
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 844 });
@@ -182,7 +176,7 @@ try {
   assert.equal(deletes, 0);
   assert.deepEqual(errors, []);
   console.log(
-    "UX 0.5.1 PASS: B2B guidance/filters, historical note separation, protected deletion and related-tour navigation, unpublish preserves seats/receipts, workspace logo, collapsible/searchable references and mobile layout.",
+    "UX PASS: B2B guidance/filters, historical notes, protected deletion, details/edit navigation, unpublish preserves seats/receipts, workspace logo, customer catalogue removal and mobile layout.",
   );
 } finally {
   if (registered) {

@@ -21,7 +21,6 @@ page.on("pageerror", (e) => {
   console.log("Page error:", e.message);
 });
 const base = process.env.TEST_URL || "http://127.0.0.1:5173";
-const revealCatalog=async()=>{const toggle=page.locator('[data-track="portal:toggle-reference"]');await toggle.waitFor();if(await toggle.getAttribute('aria-expanded')==='false')await toggle.click();};
 const em = "ui-" + Date.now() + "@example.test";
 let registered = false;
 const screenshot = (options) => page.screenshot({ animations: "disabled", ...options });
@@ -36,39 +35,27 @@ const noOverflow = async (label, widths = [320, 390]) => {
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${label} overflows at ${width}px`);
   }
 };
-const chooseFeedbackMode = async (feature, mode) => {
-  const radio = page.locator(`input[name="mode:${feature}"][value="${mode}"]`);
-  // The visible label is the touch target; its styled span covers the native radio.
-  await radio.locator('..').click();
-  assert.ok(await radio.isChecked());
-};
 try {
   await page.goto(base);
-  await revealCatalog(); await page.locator('.catalog-card').last().waitFor();
-  assert.equal(await page.locator('.catalog-card').count(),13);
-  await page.getByLabel('Tìm tour',{exact:true}).fill('EVG-TQ11');
-  assert.equal(await page.locator('.catalog-card').count(),1);
-  await page.locator('.catalog-card .card-title').click();
-  await page.getByRole('dialog').getByText('Liên hệ',{exact:true}).waitFor();
-  assert.equal(await page.getByRole('button',{name:'Yêu cầu tư vấn',exact:true}).count(),0);
-  await page.getByText('Chưa có ngày khởi hành cụ thể, số chỗ và lịch trình từng ngày.',{exact:false}).waitFor();
-  await page.getByRole('button',{name:'Xong',exact:true}).click();
-  await page.getByLabel('Tìm tour',{exact:true}).fill('');
-  // Read-only route fixture: date/stock filtering must not invent availability
-  // for reference content or write any business data to a live workspace.
-  const catalogResponse=await context.request.get(base+'/api/public/agency');
-  assert.equal(catalogResponse.status(),200);
-  const catalogData=await catalogResponse.json();
+  await page.locator('.portal-results').waitFor();
+  assert.equal(await page.locator('.reference-catalog,.catalog-card,[data-track="portal:toggle-reference"]').count(),0);
+  // Read-only route fixture exercises date/stock filtering without writing
+  // business data to a live workspace. Reference content belongs internally.
+  const publicResponse=await context.request.get(base+'/api/public/agency');
+  assert.equal(publicResponse.status(),200);
+  const publicData=await publicResponse.json();
+  assert.equal(Object.hasOwn(publicData,'catalog'),false);
   const filterTours=[
     {...qaTour,id:'filter-open',title:'Hà Nội - Đà Nẵng',destination:'Đà Nẵng',reserved:10},
     {...qaTour,id:'filter-full',title:'Tour đã đủ khách',destination:'Phú Quốc',reserved:30,departure:'2026-12-21'},
     {...qaTour,id:'filter-past',title:'Tour lịch sử',destination:'Quy Nhơn',departure:'2020-01-01'},
   ];
-  await page.route('**/api/public/agency',route=>route.fulfill({json:{...catalogData,tours:filterTours}}));
+  await page.route('**/api/public/agency',route=>route.fulfill({json:{...publicData,tours:filterTours}}));
   await page.reload();
   const operatingCards=page.locator('.tour-card:not(.catalog-card)');
   await operatingCards.last().waitFor();
   assert.equal(await operatingCards.count(),3);
+  assert.deepEqual(await page.getByLabel('Lọc điểm đến',{exact:true}).locator('option').allTextContents(),['Tất cả điểm đến','Đà Nẵng','Phú Quốc','Quy Nhơn']);
   await page.getByLabel('Tìm tour',{exact:true}).fill('da nang');
   assert.equal(await operatingCards.count(),1);
   await page.getByRole('button',{name:'Xóa bộ lọc',exact:true}).click();
@@ -76,7 +63,7 @@ try {
   await page.getByLabel('Đến ngày',{exact:true}).fill('2026-12-20');
   assert.equal(await operatingCards.count(),1);
   assert.equal(await page.locator('.catalog-card').count(),0);
-  await page.locator('.reference-filter-note').getByText('chưa có ngày hoặc số chỗ xác nhận',{exact:false}).waitFor();
+  assert.equal(await page.locator('.reference-filter-note').count(),0);
   await page.getByLabel('Đến ngày',{exact:true}).fill('2026-12-19');
   await page.getByText('Ngày kết thúc cần bằng hoặc sau ngày bắt đầu.',{exact:true}).waitFor();
   assert.equal(await operatingCards.count(),0);
@@ -86,15 +73,16 @@ try {
   await page.getByRole('button',{name:'Xóa bộ lọc',exact:true}).click();
   for(const width of [320,390]){
     await page.setViewportSize({width,height:844});
-    const hero=await page.locator('.portal-hero').boundingBox();
-    assert.ok(hero.height<550,'Mobile hero must leave space for actual tour search');
+    assert.equal(await page.locator('.portal-hero,.portal-cta,.capability-board').count(),0,'Customer view must omit operator marketing');
+    const heading=await page.locator('.customer-heading').boundingBox();
+    assert.ok(heading.height<250,'Customer heading must leave space for actual tour search');
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Portal filters overflow');
   }
   await page.unroute('**/api/public/agency');
   await page.reload();
-  await revealCatalog(); await page.locator('.catalog-card').last().waitFor();
+  await page.locator('.portal-results').waitFor();
   await page.setViewportSize({width:1440,height:1050});
-  console.log('Portal schedule filters passed: accent-free search, inclusive dates, invalid ranges, unavailable stock, honest reference separation and compact mobile hero');
+  console.log('Portal schedule filters passed: accent-free search, inclusive dates, invalid ranges, unavailable stock, published tours only and compact customer header');
   assert.equal(await page.getByText('TaskHub Travel',{exact:true}).count(),0);
   await screenshot({ path: "work/portal-desktop.png", fullPage: true });
   for (const width of [320, 390, 768]) {
@@ -112,7 +100,7 @@ try {
     .getByRole("heading", { name: "Chưa có hành trình phù hợp" })
     .waitFor();
   await page.getByRole("button", { name: "Xóa bộ lọc", exact: true }).click();
-  await revealCatalog(); await page.locator('.catalog-card').last().waitFor();
+  await page.locator('.portal-results').waitFor();
   await page.route("**/api/public/agency", (route) => route.abort());
   await page.reload();
   await page
@@ -127,8 +115,9 @@ try {
   );
   await page.unroute("**/api/public/agency");
   await page.getByRole("button", { name: "Thử tải lại", exact: true }).click();
-  await revealCatalog(); await page.locator('.catalog-card').last().waitFor();
+  await page.locator('.portal-results').waitFor();
   console.log("Portal responsive, search reset and network recovery passed");
+  await page.getByRole("button", { name: "Dành cho điều hành", exact: true }).click();
   await page.getByRole("button", { name: "Dùng thử TaskHub", exact: true }).click();
   await page.getByLabel("Tên hiển thị").fill("Người kiểm thử UI");
   await page.getByLabel("Email", { exact: true }).fill(em);
@@ -147,9 +136,12 @@ try {
   assert.equal((await signupResponse).status(), 201);
   registered = true;
   await page.getByRole("heading", { name: "Tổng quan", exact: true }).waitFor();
-  await page
-    .getByRole("heading", { name: "Bắt đầu trong 3 bước", exact: true })
-    .waitFor();
+  await page.getByText("Hành trình đang mở", { exact: true }).waitFor();
+  assert.equal(await page.locator(".welcome-banner,.workspace-switch,.app-main > .workspace-notice").count(), 0);
+  assert.equal(await page.locator('aside nav').getByRole('button',{name:'Phản hồi MVP',exact:true}).count(), 0);
+  assert.equal(await page.getByRole('button',{name:'Hướng dẫn & hỗ trợ',exact:true}).count(),0);
+  assert.equal(await page.locator('a[href*="github.com"]').count(),0);
+  assert.equal(await page.locator('.feature-feedback-form,select[name="price_status"]').count(), 0);
   console.log("Signup passed");
   await page.getByText("Hành trình đang mở", { exact: true }).waitFor();
   let pending = 0,
@@ -210,6 +202,13 @@ try {
   await page.locator('input[name="published"]').check();
   await page.getByRole('button',{name:'Lưu hành trình',exact:true}).click();
   await page.getByRole('dialog').waitFor({state:'hidden'});
+  await page.getByRole('button',{name:qaTour.title,exact:true}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'Báo giá Excel',exact:true}).waitFor();
+  assert.equal(await page.getByRole('dialog').getByRole('button',{name:'Yêu cầu tư vấn',exact:true}).count(),0);
+  await page.getByRole('dialog').getByRole('button',{name:'Sửa tour',exact:true}).click();
+  await page.getByRole('heading',{name:'Cập nhật hành trình',exact:true}).waitFor();
+  assert.equal(await page.locator('input[name="title"]').inputValue(),qaTour.title);
+  await page.getByRole('button',{name:'Hủy',exact:true}).click();
   await page
     .getByRole("button", { name: "Đổi số chỗ", exact: true })
     .click();
@@ -363,50 +362,12 @@ try {
   assert.equal(await page.getByRole('dialog').getByRole('list',{name:'Các thay đổi của phiếu ghép',exact:true}).locator('li').count(),5);
   await page.getByRole('dialog').getByRole('button',{name:'Đóng',exact:true}).click();
   console.log('B2B UI passed: create, seat confirmation, payment reconciliation and cancellation');
-  await page.getByRole("button", { name: "Phản hồi MVP", exact: true }).click();
-  assert.equal(await page.getByRole('region',{name:/^Đánh giá /}).count(),6);
-  assert.equal(await page.locator('select[name="price_status"]').inputValue(),'declined');
-  for (const feature of ["portal", "operations", "sync"]) {
-    await chooseFeedbackMode(feature,'self');
-    await page.locator(`select[name="result:${feature}"]`).selectOption('completed');
-    await page.locator(`select[name="importance:${feature}"]`).selectOption('4');
-    await page.locator(`select[name="ease:${feature}"]`).selectOption('4');
-    await page.locator(`select[name="intent:${feature}"]`).selectOption('maybe');
-  }
-  await chooseFeedbackMode('pooling','demo');
-  await page.locator('select[name="importance:pooling"]').selectOption('5');
-  await page.locator('select[name="intent:pooling"]').selectOption('yes');
-  assert.equal(await page.locator('select[name="ease:pooling"]').count(),0,'Demo-only feedback must not ask for a self-use ease rating');
-  for(const feature of ['import','quick_actions'])
-    assert.equal(await page.locator(`input[name="mode:${feature}"][value="untried"]`).isChecked(),true);
-  await page.locator('select[name="price_status"]').selectOption('undecided');
-  await page.getByRole('button',{name:'Gửi đánh giá',exact:true}).click();
-  await page.getByRole('button',{name:'Cập nhật phản hồi',exact:true}).waitFor();
-  let savedFeedback=(await workspace()).featureFeedback;
-  assert.equal(savedFeedback.price_status,'undecided');
-  assert.equal(savedFeedback.price,null,'An unknown price remains missing, not zero');
-  assert.equal(savedFeedback.entries.length,6);
-  assert.deepEqual(savedFeedback.entries.find(entry=>entry.feature==='pooling'),{feature:'pooling',mode:'demo',result:'viewed',importance:5,ease:null,intent:'yes'});
-  assert.equal(savedFeedback.entries.find(entry=>entry.feature==='import').importance,null);
-  await page.locator('select[name="price_status"]').selectOption('provided');
-  await page.locator('input[name="price"]').fill('0');
-  const savedResponse=page.waitForResponse(response=>response.url().endsWith('/api/feedback/features')&&response.request().method()==='POST');
-  await page.getByRole('button',{name:'Cập nhật phản hồi',exact:true}).click();
-  assert.equal((await savedResponse).status(),200);
-  savedFeedback=(await workspace()).featureFeedback;
-  assert.equal(savedFeedback.price_status,'provided');
-  assert.equal(savedFeedback.price,0,'Explicit zero remains a valid willingness-to-pay answer');
-  await noOverflow('Feature feedback');
+  assert.equal(await page.getByRole('button',{name:'Phản hồi MVP',exact:true}).count(),0);
+  assert.equal(await page.getByRole('button',{name:'Gửi đánh giá',exact:true}).count(),0);
+  assert.equal(await page.locator('.feature-feedback-form,select[name="price_status"]').count(),0);
+  await page.getByRole('button',{name:'Tổng quan',exact:true}).click();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await page.waitForTimeout(250);
-  await screenshot({ path: "work/feedback-mobile.png", fullPage: true });
-  assert.ok(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-    "Mobile feedback has horizontal overflow",
-  );
+  await noOverflow('Dashboard after survey removal');
   await page.getByRole("button", { name: "Mở menu", exact: true }).click();
   await page.keyboard.press("Escape");
   assert.equal(
@@ -460,8 +421,9 @@ try {
     const review = await reviewerContext.newPage();
     review.on("pageerror", (error) => errors.push(error.message));
     await review.goto(base + "/app");
-    await review.getByText('Người đánh giá chỉ có quyền xem.', {exact:false}).waitFor();
-    assert.ok((await review.locator('.workspace-notice').innerText()).includes('Dữ liệu giả lập'));
+    await review.getByRole('heading',{name:'Tổng quan',exact:true}).waitFor();
+    await review.locator('.profile').getByText('Người đánh giá · chỉ xem',{exact:true}).waitFor();
+    assert.equal(await review.locator('.app-main > .workspace-notice,.workspace-switch,.welcome-banner').count(),0);
     await review
       .getByRole("button", { name: "Quản lý tour", exact: true })
       .click();
@@ -486,14 +448,11 @@ try {
     assert.equal(await review.getByRole('button',{name:'Giao công việc',exact:true}).count(),0);
     assert.equal(await review.getByRole('button',{name:/^Sửa /}).count(),0);
     assert.equal(await review.getByRole('button',{name:'Xóa công việc',exact:true}).count(),0);
-    await review
-      .getByRole("button", { name: "Phản hồi MVP", exact: true })
-      .click();
-    await review
-      .getByRole("link", { name: "Tương tác CSV", exact: true })
-      .waitFor();
-    await review.getByRole('link',{name:'Người thử CSV',exact:true}).waitFor();
-    await review.getByRole('link',{name:'Đánh giá tính năng CSV',exact:true}).waitFor();
+    assert.equal(await review.getByRole('button',{name:'Phản hồi MVP',exact:true}).count(),0);
+    assert.equal(await review.getByRole('button',{name:'Hướng dẫn & hỗ trợ',exact:true}).count(),0);
+    await review.getByRole('button',{name:'Tài khoản & nhóm',exact:true}).click();
+    await review.getByRole('link',{name:'Nhật ký thao tác CSV',exact:true}).waitFor();
+    assert.equal(await review.getByRole('link',{name:'Nhật ký thao tác CSV',exact:true}).getAttribute('href'),'/api/export/events');
     await review.screenshot({
       path: "work/reviewer-desktop.png",
       fullPage: true,
@@ -502,13 +461,14 @@ try {
     await reviewerContext.close();
     assert.deepEqual(errors, []);
     console.log(
-      "Reviewer UI passed: reports visible, tour/task writes unavailable.",
+      "Reviewer UI passed: protected interaction export in account settings; survey/help menus and tour/task writes unavailable.",
     );
   }
   await page.setViewportSize({width:1440,height:1050});
   await page.getByRole('button',{name:'Về điều hành',exact:true}).click();
   await page.getByRole('button',{name:'Quản lý tour',exact:true}).click();
   await page.getByRole('button',{name:qaTour.title,exact:true}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'Sửa tour',exact:true}).click();
   await page.getByRole('button',{name:'Xóa tour',exact:true}).click();
   await page.getByRole('button',{name:'Giữ lại tour',exact:true}).click();
   assert.equal(await page.getByRole('button',{name:'Xác nhận xóa tour',exact:true}).count(),0);
@@ -539,12 +499,18 @@ try {
   await page.getByRole('button',{name:'Excel UI QA',exact:true}).waitFor();
   await page.locator('.tour-card').getByText('Bản nháp',{exact:true}).waitFor();
   console.log('XLSX browser import passed; new tour stays unpublished');
-  const loggedWorkspace=await (await context.request.get(base+'/api/workspace')).json();
-  assert.ok(loggedWorkspace.completedActions.includes('ui_click'),'Participant button/menu clicks must reach the server');
+  let loggedClick=false;
+  for(let attempt=0;attempt<12;attempt++) {
+    const loggedWorkspace=await (await context.request.get(base+'/api/workspace')).json();
+    loggedClick=loggedWorkspace.activity.some(event=>event.action==='ui_click');
+    if(loggedClick)break;
+    await page.waitForTimeout(300);
+  }
+  assert.ok(loggedClick,'Consented participant button/menu clicks must reach the server after survey removal');
   assert.deepEqual(errors, []);
   console.log('Consented participant UI clicks were saved; no browser errors');
   console.log(
-    "UI PASS: signup, live tour withdrawal/recovery, inquiry, task CRUD/status, B2B audit, feature feedback and XLSX import; desktop/mobile no overflow; no page errors.",
+    "UI PASS: signup, live tour withdrawal/recovery, inquiry, task CRUD/status, B2B audit, retired survey absence, raw click logs and XLSX import; desktop/mobile no overflow; no page errors.",
   );
 } catch (e) {
   await screenshot({ path: "work/ui-failure.png", fullPage: true });

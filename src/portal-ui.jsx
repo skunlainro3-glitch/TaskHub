@@ -4,29 +4,26 @@ import {
   ArrowRight,
   ArrowLeft,
   Plus,
+  Pencil,
   Search,
   MapPin,
   CalendarDays,
   Users,
-  Check,
   X,
-  Compass,
   Clock,
   ChevronRight,
   ShieldCheck,
   RefreshCw,
   SlidersHorizontal,
   CheckCircle2,
-  AlertCircle,
   Send,
-  Globe,
-  Mail,
-  ListTodo,
-  Handshake,
-  CheckCheck,
-  Inbox,
 } from "lucide-react";
 import { TourMedia, TourImageCredit } from "./tour-media.jsx";
+import { SyncStatus } from "./sync-status.jsx";
+import { PrintPage } from "./print-page.jsx";
+import { downloadTable } from "./export-file.mjs";
+import { Printer, Download } from "lucide-react";
+import { startPolling } from "./polling.mjs";
 import {
   matchesTourSearch,
   matchesTourSchedule,
@@ -45,7 +42,7 @@ export function createPortalUI({
   date,
   todayVN,
 }) {
-  function TourCard({ tour, onOpen, internal = false, onSeats, onTask }) {
+  function TourCard({ tour, onOpen, internal = false, onEdit, onSeats, onTask }) {
     const remaining = tour.capacity - tour.reserved;
     const departed = tour.departure < todayVN();
     return (
@@ -109,8 +106,18 @@ export function createPortalUI({
               </Badge>
             </div>
           )}
-          {(onSeats || onTask) && (
+          {(onEdit || onSeats || onTask) && (
             <div className="tour-quick-actions">
+              {onEdit && (
+                <Button
+                  variant="ghost"
+                  data-track="tour:edit"
+                  onClick={() => onEdit(tour)}
+                >
+                  <Pencil size={15} />
+                  Sửa tour
+                </Button>
+              )}
               {onSeats && (
                 <Button
                   variant="ghost"
@@ -140,47 +147,6 @@ export function createPortalUI({
 
   function CatalogImage({ tour }) {
     return <TourMedia tour={tour} />;
-  }
-
-  function CatalogCard({ tour, onOpen }) {
-    return (
-      <article className="tour-card catalog-card" data-track-entity={tour.id}>
-        <button
-          className="cover-button"
-          aria-label={"Xem " + tour.title}
-          onClick={() => onOpen(tour)}
-        >
-          <CatalogImage tour={tour} />
-          <span className="cover-pill">
-            <MapPin size={12} />
-            {tour.destination}
-          </span>
-        </button>
-        <div className="tour-card-body">
-          <div className="catalog-kicker">
-            <span>{tour.code}</span>
-            <Badge tone="blue">Tham khảo</Badge>
-          </div>
-          <div className="eyebrow">{tour.duration}</div>
-          <button className="card-title" onClick={() => onOpen(tour)}>
-            {tour.title}
-            <ArrowUpRight size={19} />
-          </button>
-          <p>{tour.route}</p>
-          <div className="catalog-departure">
-            <CalendarDays size={15} />
-            <span>{tour.departureNote} · Chưa chốt ngày</span>
-          </div>
-          <div className="tour-meta catalog-price">
-            <span>Giá tham khảo</span>
-            <strong>
-              {tour.price === null ? "Liên hệ" : money(tour.price)}
-              {tour.price !== null && <small>/ khách</small>}
-            </strong>
-          </div>
-        </div>
-      </article>
-    );
   }
 
   function CatalogDetails({ tour, source, onClose, onUse }) {
@@ -260,11 +226,7 @@ export function createPortalUI({
   function CatalogPicker({ catalog, onClose, onUse }) {
     const [query, setQuery] = useState("");
     const [selected, setSelected] = useState(null);
-    const tours = catalog.tours.filter((t) =>
-      (t.title + " " + t.code + " " + t.destination)
-        .toLocaleLowerCase("vi")
-        .includes(query.toLocaleLowerCase("vi")),
-    );
+    const tours = catalog.tours.filter((t) => matchesTourSearch(t, query));
     if (selected)
       return (
         <CatalogDetails
@@ -332,7 +294,7 @@ export function createPortalUI({
     );
   }
 
-  function Portal({ workspace, user, onAuth, onWorkspace, notify }) {
+  function Portal({ workspace, user, onWorkspace, notify }) {
     const pending = useRef(0);
     const latest = useRef(0);
     const [data, setData] = useState(null),
@@ -343,12 +305,7 @@ export function createPortalUI({
       [to, setTo] = useState(""),
       [availableOnly, setAvailableOnly] = useState(false),
       [selected, setSelected] = useState(null),
-      [reference, setReference] = useState(null),
-      [last, setLast] = useState("");
-    const [catalogOpen, setCatalogOpen] = useState(false);
-    useEffect(() => {
-      if (query || destination) setCatalogOpen(true);
-    }, [query, destination]);
+      [lastSuccess, setLastSuccess] = useState(null);
     const load = useCallback(async () => {
       const request = ++latest.current;
       pending.current += 1;
@@ -356,31 +313,28 @@ export function createPortalUI({
         const d = await api("/public/" + workspace);
         if (request !== latest.current) return;
         setData(d);
-        setLast(new Date().toLocaleTimeString("vi-VN"));
+        setLastSuccess(Date.now());
         setError("");
       } catch (e) {
         if (request === latest.current) setError(e.message);
+        throw e;
       } finally {
         pending.current -= 1;
       }
     }, [workspace]);
     useEffect(() => {
-      load();
+      return startPolling(load, { isBusy: () => pending.current > 0 });
+    }, [load]);
+    useEffect(() => {
       if (user && user.workspace === workspace)
         api("/events", "POST", { action: "portal_viewed" }).catch(() => {});
-      const timer = setInterval(() => {
-        if (!document.hidden && pending.current === 0) load();
-      }, 5000);
-      return () => clearInterval(timer);
-    }, [load, user?.id]);
-    const allTours = [...(data?.tours || []), ...(data?.catalog?.tours || [])];
+    }, [workspace, user?.id, user?.workspace]);
+    const allTours = data?.tours || [];
     const schedule = { from, to, availableOnly };
     const scheduleActive = hasScheduleFilters(schedule);
     const filtersActive = Boolean(query || destination || scheduleActive);
     const invalidRange = Boolean(from && to && from > to);
     const matches = (tour) => matchesTourSearch(tour, query, destination);
-    const referenceMatches = (data?.catalog?.tours || []).filter(matches);
-    const references = scheduleActive ? [] : referenceMatches;
     const visible = (data?.tours || []).filter(
       (tour) => matches(tour) && matchesTourSchedule(tour, schedule),
     );
@@ -390,7 +344,6 @@ export function createPortalUI({
       setFrom("");
       setTo("");
       setAvailableOnly(false);
-      setCatalogOpen(false);
     }
     const open = (t) => {
       setSelected(t);
@@ -419,100 +372,22 @@ export function createPortalUI({
             <span className="nav-divider" />
             <Button
               variant="ghost"
-              onClick={user ? onWorkspace : () => onAuth("login")}
+              onClick={onWorkspace}
+              data-track="portal:operations"
             >
-              {user ? "Về điều hành" : "Đăng nhập"}
+              {user ? "Về điều hành" : "Dành cho điều hành"}
               <ArrowUpRight size={16} />
             </Button>
-            {!user && (
-              <Button onClick={() => onAuth("register")}>
-                Dùng thử TaskHub
-                <ArrowRight size={16} />
-              </Button>
-            )}
           </nav>
         </header>
         <main>
-          <div className="portal-hero">
-            <div className="hero-copy">
-              <div className="eyebrow blue">
-                <span className="live-dot" />
-                TASKHUB ·{" "}
-                {workspace === "agency"
-                  ? "ĐIỀU HÀNH TOUR"
-                  : data?.agency || "CỔNG THÔNG TIN TOUR"}
-              </div>
-              <h1>
-                Lịch rõ ràng.
-                <br />
-                Đội ngũ <em>cùng nhịp.</em>
-              </h1>
-              <p>
-                Quản lý tour, lịch khởi hành và công việc tại một nơi. Thông tin
-                được công khai từ điều hành để khách hàng cùng tra cứu.
-              </p>
-              <a className="btn" href="#journeys">
-                Xem cổng tour
-                <ArrowRight size={17} />
-              </a>
-              <div className="hero-trust">
-                <ShieldCheck size={17} />
-                Cùng một nguồn thông tin với đội ngũ điều hành
-              </div>
-            </div>
-            <div
-              className="capability-board"
-              aria-label="Ba chức năng của TaskHub"
-            >
-              <span className="eyebrow blue">MỘT NGUỒN THÔNG TIN</span>
-              <h2>
-                Từ điều hành
-                <br />
-                đến cổng khách hàng.
-              </h2>
-              {[
-                [
-                  Compass,
-                  "Quản lý tour",
-                  "Lịch trình, ngày khởi hành, giá và số chỗ",
-                ],
-                [
-                  Globe,
-                  "Cổng khách hàng",
-                  "Tra cứu thông tin tour đã công khai",
-                ],
-                [
-                  ListTodo,
-                  "Công việc theo tour",
-                  "Người phụ trách, thời hạn và tiến độ",
-                ],
-              ].map(([Icon, title, description]) => (
-                <div className="capability-row" key={title}>
-                  <span className="capability-icon">
-                    <Icon size={22} />
-                  </span>
-                  <div>
-                    <strong>{title}</strong>
-                    <p>{description}</p>
-                  </div>
-                  <Check size={16} aria-hidden="true" />
-                </div>
-              ))}
-              <span className="capability-note">
-                <RefreshCw size={14} /> Lịch và số chỗ dùng chung với điều hành
-              </span>
-            </div>
-          </div>
           <section id="journeys" className="journeys">
-            <div className="section-title">
+            <div className="section-title customer-heading">
               <div>
-                <div className="eyebrow blue">THÔNG TIN TỪ ĐIỀU HÀNH</div>
-                <h2>Cổng thông tin tour</h2>
+                <h1>Cổng thông tin tour</h1>
+                <p>Tra cứu lịch trình, giá, số chỗ và gửi yêu cầu tư vấn.</p>
               </div>
-              <span className={"sync-note " + (error ? "stale" : "")}>
-                {error ? <AlertCircle size={14} /> : <RefreshCw size={14} />}
-                {error ? "Chưa thể cập nhật" : `Cập nhật ${last || "…"}`}
-              </span>
+              <SyncStatus lastSuccess={lastSuccess} error={error} compact />
             </div>
             {workspace === "agency" && (
               <div className="portal-notice" role="note">
@@ -520,10 +395,8 @@ export function createPortalUI({
                 <p>
                   <strong>Không gian trình diễn TaskHub</strong>
                   <br />
-                  Dữ liệu giả lập phục vụ trình diễn, không phải thông tin mở
-                  bán thực tế. Lịch, giá và số chỗ của các tour từ điều hành
-                  dùng để kiểm thử; yêu cầu gửi tại đây không tạo đặt tour hoặc
-                  thanh toán.
+                  Dữ liệu giả lập để dùng thử. Không mở bán, nhận đặt tour
+                  hoặc thanh toán thực tế.
                 </p>
               </div>
             )}
@@ -591,9 +464,6 @@ export function createPortalUI({
               <div className="portal-results">
                 <p role="status" aria-live="polite">
                   {visible.length} tour có lịch
-                  {!scheduleActive && references.length > 0
-                    ? ` · ${references.length} hành trình tham khảo`
-                    : ""}
                 </p>
                 {filtersActive && (
                   <Button
@@ -607,24 +477,6 @@ export function createPortalUI({
                 )}
               </div>
             )}
-            {scheduleActive && referenceMatches.length > 0 && (
-              <p className="reference-filter-note">
-                {referenceMatches.length} hành trình tham khảo chưa có ngày hoặc
-                số chỗ xác nhận nên không nằm trong kết quả lọc lịch.{" "}
-                <button
-                  type="button"
-                  className="text-btn"
-                  onClick={() => {
-                    setFrom("");
-                    setTo("");
-                    setAvailableOnly(false);
-                    setCatalogOpen(true);
-                  }}
-                >
-                  Xem danh mục tham khảo
-                </button>
-              </p>
-            )}
             <ErrorBox error={error} />
             {error && (
               <div className="connection-recovery">
@@ -633,7 +485,7 @@ export function createPortalUI({
                     ? "Đang hiển thị dữ liệu từ lần tải thành công gần nhất. Số chỗ có thể đã thay đổi."
                     : "Danh sách tour chưa tải được. Vui lòng thử lại khi kết nối ổn định."}
                 </p>
-                <Button variant="ghost" onClick={load}>
+                <Button variant="ghost" onClick={() => load().catch(() => {})}>
                   <RefreshCw size={16} />
                   Thử tải lại
                 </Button>
@@ -652,7 +504,7 @@ export function createPortalUI({
                   ))}
                 </div>
               </div>
-            ) : data && !references.length ? (
+            ) : data ? (
               <Empty
                 title={
                   filtersActive
@@ -665,107 +517,19 @@ export function createPortalUI({
                   : "Tour chỉ xuất hiện tại đây sau khi người quản lý nhập thông tin và chọn công khai."}
               </Empty>
             ) : null}
-            {!!references.length && (
-              <div className="reference-catalog">
-                <div className="catalog-heading">
-                  <div>
-                    <div className="eyebrow blue">DỮ LIỆU TOUR TỪ ÉN VIỆT</div>
-                    <h3>Khám phá hành trình quốc tế</h3>
-                  </div>
-                  <span>{references.length} hành trình</span>
-                </div>
-                <p className="catalog-intro">
-                  Tham khảo tuyến đi, điểm nổi bật và giá. Ngày khởi hành và số
-                  chỗ cần được xác nhận riêng.
-                </p>
-                <Button
-                  variant="ghost"
-                  aria-expanded={catalogOpen}
-                  aria-controls="reference-tour-list"
-                  data-track="portal:toggle-reference"
-                  onClick={() => setCatalogOpen((open) => !open)}
-                >
-                  {catalogOpen
-                    ? "Thu gọn danh mục tham khảo"
-                    : "Xem " + references.length + " hành trình tham khảo"}
-                </Button>
-                <div id="reference-tour-list" hidden={!catalogOpen}>
-                  <div className="tour-grid">
-                    {references.map((t) => (
-                      <CatalogCard key={t.id} tour={t} onOpen={setReference} />
-                    ))}
-                  </div>
-                  <p className="catalog-attribution">
-                    Nguồn:{" "}
-                    <a
-                      href={data.catalog.source.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {data.catalog.source.name}
-                    </a>{" "}
-                    · Ghi nhận {date(data.catalog.source.capturedOn)}. Thông tin
-                    tham khảo có thể thay đổi.
-                  </p>
-                </div>
-              </div>
-            )}
             <div className="portal-notice">
               <ShieldCheck size={17} />
               <p>
-                Tour có lịch và số chỗ được công khai từ điều hành.
-                {data?.catalog &&
-                  " Danh mục Én Việt là thông tin tham khảo."}{" "}
+                Tour có lịch và số chỗ được công khai từ điều hành.{" "}
                 Yêu cầu tư vấn không giữ chỗ và không tạo thanh toán.
               </p>
             </div>
           </section>
-          <section className="portal-cta">
-            <div>
-              <div className="eyebrow">
-                DÀNH CHO DOANH NGHIỆP LỮ HÀNH 10–50 NHÂN SỰ
-              </div>
-              <h2>Để mỗi chuyến đi vận hành trôi chảy.</h2>
-              <p>
-                Tập trung lịch, số chỗ và công việc để người điều hành theo dõi.
-                Khách hàng tra cứu thông tin đã công khai trên một cổng riêng.
-              </p>
-            </div>
-            <Button
-              variant="light"
-              onClick={user ? onWorkspace : () => onAuth("register")}
-            >
-              {user ? "Mở điều hành" : "Trải nghiệm TaskHub"}
-              <ArrowUpRight size={18} />
-            </Button>
-          </section>
         </main>
         <footer className="portal-footer">
           <Logo />
-          <span>Ít thao tác hơn. Nhiều hành trình hơn.</span>
-          <span>Quản lý tour · Cổng khách hàng · Công việc</span>
-          <a
-            href="/images/tours/credits.html"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Nguồn ảnh
-          </a>
-          <a
-            href="https://github.com/skunlainro3-glitch/TaskHub/issues"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Góp ý / báo lỗi
-          </a>
+          <span>Lịch trình · Giá tour · Yêu cầu tư vấn</span>
         </footer>
-        {reference && (
-          <CatalogDetails
-            tour={reference}
-            source={data.catalog.source}
-            onClose={() => setReference(null)}
-          />
-        )}
         {selected &&
           ((data?.tours || []).some((t) => t.id === selected.id) ? (
             <TourDetails
@@ -794,7 +558,7 @@ export function createPortalUI({
     );
   }
 
-  function TourDetails({ tour, workspace, onClose, notify, readOnly = false }) {
+  function TourDetails({ tour, workspace, onClose, notify, readOnly = false, internal = false, onEdit }) {
     const [booking, setBooking] = useState(false),
       [busy, setBusy] = useState(false),
       [sent, setSent] = useState(false),
@@ -802,6 +566,34 @@ export function createPortalUI({
     const simulated = workspace === "agency";
     const departed = tour.departure < todayVN();
     const unavailable = departed || tour.reserved >= tour.capacity;
+    async function exportQuote() {
+      try {
+        await downloadTable("taskhub-tour.xlsx", {
+          name: "Thong tin tour",
+          headers: ["Thông tin", "Nội dung"],
+          widths: [28, 95],
+          rows: [
+            ["Tên tour", tour.title],
+            ["Điểm đến", tour.destination],
+            ["Khởi hành", tour.departure],
+            ["Thời lượng", tour.duration],
+            ["Giá / khách (VND)", tour.price],
+            ["Chỗ còn lúc xuất", tour.capacity - tour.reserved],
+            ["Mô tả", tour.description],
+            ...tour.itinerary.split("\n").map((line,i)=>["Lịch trình "+(i+1),line]),
+            ["Cập nhật", tour.updated],
+            [
+              "Lưu ý",
+              simulated
+                ? "Dữ liệu giả lập, không phải tour mở bán."
+                : "Thông tin tham khảo, cần xác nhận dịch vụ/giá/chỗ; không phải booking hoặc xác nhận thanh toán.",
+            ],
+          ],
+        });
+      } catch (e) {
+        notify("Chưa xuất được tệp: " + e.message, "error");
+      }
+    }
     async function submit(e) {
       e.preventDefault();
       if (unavailable) {
@@ -843,7 +635,7 @@ export function createPortalUI({
         wide
       >
         <div className="detail-cover">
-          <TourMedia tour={tour} />
+          <TourMedia tour={tour} large />
         </div>
         <TourImageCredit tour={tour} />
         <div className="detail-facts">
@@ -871,6 +663,28 @@ export function createPortalUI({
           </div>
         )}
         <p className="detail-description">{tour.description}</p>
+        <div className="button-row tour-document-actions">
+          <Button
+            variant="ghost"
+            type="button"
+            disabled={busy}
+            onClick={() => window.print()}
+            data-track="tour:print"
+          >
+            <Printer size={16} />
+            In / lưu báo giá PDF
+          </Button>
+          <Button
+            variant="ghost"
+            type="button"
+            disabled={busy}
+            onClick={exportQuote}
+            data-track="tour:quote-xlsx"
+          >
+            <Download size={16} />
+            Báo giá Excel
+          </Button>
+        </div>
         <h3>Lịch trình dự kiến</h3>
         <div className="itinerary">
           {tour.itinerary.split("\n").map((line, i) => (
@@ -884,9 +698,21 @@ export function createPortalUI({
           Thông tin do người quản lý tour cung cấp. Chi tiết dịch vụ cần được
           xác nhận trước khi đặt tour.
         </p>
-        {readOnly ? (
+        {internal ? (
+          <div className="modal-actions">
+            <Button variant="ghost" onClick={onClose}>
+              Đóng
+            </Button>
+            {onEdit && (
+              <Button data-track="tour:edit" onClick={() => onEdit(tour)}>
+                <Pencil size={16} />
+                Sửa tour
+              </Button>
+            )}
+          </div>
+        ) : readOnly ? (
           <p className="workspace-notice">
-            Chế độ xem dành cho người đánh giá.
+            Chế độ xem. Vai trò hiện tại không chỉnh sửa thông tin tour.
           </p>
         ) : unavailable ? (
           <div className="tour-expired-notice">
@@ -913,10 +739,10 @@ export function createPortalUI({
             <ErrorBox error={error} />
             <div className="form-grid">
               <Field label="Tên">
-                <input name="name" required maxLength="80" />
+                <input name="name" autoComplete="name" required maxLength="80" />
               </Field>
               <Field label="Email">
-                <input name="email" type="email" required maxLength="254" />
+                <input name="email" type="email" autoComplete="email" required maxLength="254" />
               </Field>
             </div>
             <Field label="Số khách">
@@ -958,6 +784,56 @@ export function createPortalUI({
             <ArrowRight size={17} />
           </Button>
         )}
+        <PrintPage>
+          <strong>TaskHub · Thông tin tour và giá tham khảo</strong>
+          <h1>{tour.title}</h1>
+          <p>
+            {tour.destination} · {tour.duration}
+          </p>
+          <table>
+            <tbody>
+              <tr>
+                <th>Ngày khởi hành</th>
+                <td>{date(tour.departure)}</td>
+              </tr>
+              <tr>
+                <th>Giá tham khảo / khách</th>
+                <td>{money(tour.price)}</td>
+              </tr>
+              <tr>
+                <th>Chỗ còn tại thời điểm xuất</th>
+                <td>{tour.capacity - tour.reserved}</td>
+              </tr>
+              <tr>
+                <th>Tình trạng lịch</th>
+                <td>
+                  {departed
+                    ? "Đã khởi hành"
+                    : tour.reserved >= tour.capacity
+                      ? "Đã đủ khách"
+                      : "Chưa khởi hành"}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          {simulated && (
+            <p>
+              <strong>DỮ LIỆU GIẢ LẬP. Không phải tour mở bán.</strong>
+            </p>
+          )}
+          <p>{tour.description}</p>
+          <h2>Lịch trình dự kiến</h2>
+          <p>{tour.itinerary}</p>
+          <p className="print-note">
+            Thông tin do người quản lý cung cấp, cập nhật{" "}
+            {tour.updated
+              ? new Date(tour.updated).toLocaleString("vi-VN",{timeZone:'Asia/Ho_Chi_Minh'})
+              : "chưa rõ"}
+            . Giá, chỗ và dịch vụ cần được xác nhận lại. Tài liệu này không giữ
+            chỗ, xác nhận đặt tour hoặc thanh toán. Vui lòng xác nhận chính sách
+            dịch vụ với đơn vị tổ chức trước khi đặt tour.
+          </p>
+        </PrintPage>
       </Modal>
     );
   }

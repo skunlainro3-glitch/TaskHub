@@ -1,0 +1,173 @@
+.workspace-tools {
+  display: grid;
+  gap: 20px;
+}
+.tool-panel,
+.workflow-intro {
+  padding: 24px;
+}
+.tool-panel h3 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.tool-panel p,
+.workflow-intro p,
+.tool-panel li {
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.workflow-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+.workflow-steps li {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.workflow-number {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 700;
+}
+.workflow-steps small {
+  color: var(--primary);
+  min-height: 36px;
+}
+.workflow-steps h3,
+.workflow-steps p {
+  margin: 0;
+}
+.workflow-steps p {
+  font-size: 13px;
+  color: var(--muted);
+  flex: 1;
+  line-height: 1.65;
+}
+.workflow-steps strong {
+  font-size: 13px;
+}
+.workflow-steps .btn {
+  padding: 10px 8px;
+  font-size: 12px;
+}
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.sync-status.stale,
+.sync-status.offline {
+  color: #99502b;
+}
+.planning-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.planning-fields .field {
+  margin: 0;
+  min-width: 0;
+}
+.planning-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+.planning-metrics > div {
+  border: 1px solid var(--border);
+  background: #f5f9ff;
+  border-radius: 12px;
+  padding: 18px;
+  min-width: 0;
+}
+.planning-metrics strong {
+  display: block;
+  font-size: 23px;
+  overflow-wrap: anywhere;
+  color: var(--primary-dark);
+  margin-top: 8px;
+}
+.planning-metrics span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.planning-row {
+  border-top: 1px solid var(--border);
+  padding: 20px 0;
+}
+.planning-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin: 14px 0;
+}
+.planning-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.planning-note {
+  background: #eef5ff;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--muted);
+}
+.planning-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: 20px;
+}
+.planning-comparison {
+  margin-top: 24px;
+}
+.planning-comparison caption {
+  text-align: left;
+  color: var(--muted);
+  padding-bottom: 12px;
+}
+@media (max-width: 1100px) {
+  .workflow-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .workflow-steps,
+  .planning-fields,
+  .planning-metrics {
+    grid-template-columns: 1fr;
+  }
+  .tool-panel,
+  .workflow-intro {
+    padding: 18px;
+  }
+  .workflow-steps small {
+    min-height: 0;
+  }
+  .planning-toolbar .btn {
+    flex: 1;
+  }
+}

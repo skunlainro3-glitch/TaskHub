@@ -1,0 +1,140 @@
+.analytics-report {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.analytics-report > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.analytics-filter input {
+  min-width: 0;
+  width: 100%;
+}
+.analytics-meta .button-row {
+  flex-wrap: wrap;
+}
+.analytics-meta > span {
+  overflow-wrap: anywhere;
+}
+.analytics-definitions {
+  color: var(--muted);
+  font-size: 14px;
+}
+.analytics-definitions summary {
+  color: var(--navy);
+  cursor: pointer;
+  padding: 10px 0;
+}
+.analytics-definitions ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  line-height: 1.7;
+}
+.analytics-definitions li + li {
+  margin-top: 6px;
+}
+.analytics-filter {
+  padding: 20px;
+  display: flex;
+  align-items: end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.analytics-filter label {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  min-width: 150px;
+}
+.analytics-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  color: var(--muted);
+}
+.analytics-panel {
+  padding: 24px;
+  min-width: 0;
+}
+.analytics-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  margin: 0 0 20px;
+}
+.analytics-panel .table-wrap {
+  margin-top: 20px;
+}
+.analytics-panel td small {
+  display: block;
+}
+.analytics-breakdown {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.analytics-breakdown p {
+  color: var(--muted);
+}
+.analytics-bars {
+  display: grid;
+  gap: 16px;
+}
+.analytics-bar {
+  display: grid;
+  grid-template-columns: 75px minmax(40px, 1fr) 145px;
+  align-items: center;
+  gap: 14px;
+}
+.analytics-bar > div {
+  height: 16px;
+  background: #edf4fd;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.analytics-bar i {
+  height: 100%;
+  display: block;
+  background: #3879c6;
+  border-radius: 6px;
+}
+.analytics-bar strong {
+  font-size: 13px;
+  text-align: right;
+}
+@media (max-width: 650px) {
+  .analytics-filter {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .analytics-filter label {
+    grid-column: 1/-1;
+    min-width: 0;
+  }
+  .analytics-filter .btn {
+    flex: 1;
+  }
+  .analytics-panel {
+    padding: 18px;
+  }
+  .analytics-breakdown {
+    grid-template-columns: 1fr;
+  }
+  .analytics-bar {
+    grid-template-columns: 65px 1fr;
+    gap: 6px;
+  }
+  .analytics-bar strong {
+    grid-column: 2;
+  }
+  .analytics-meta .button-row {
+    width: 100%;
+  }
+  .analytics-meta .btn {
+    flex: 1;
+  }
+}

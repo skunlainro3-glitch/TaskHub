@@ -25,7 +25,6 @@ import {
   RefreshCw,
   Download,
   Menu,
-  HelpCircle,
   Send,
   SlidersHorizontal,
   CheckCircle2,
@@ -36,21 +35,27 @@ import {
   Handshake,
   Upload,
   Settings,
+  GitBranch,
+  Calculator,
 } from "lucide-react";
 import "./styles.css";
 import { createOperationsUI } from "./operations-ui.jsx";
 import { startInteractions, flushInteractions } from "./interactions.mjs";
-import { createExperienceUI } from "./experience-ui.jsx";
 import { createPortalUI } from "./portal-ui.jsx";
 import { createAccountUI } from "./accounts-ui.jsx";
-import { createTrialUI } from "./trial-ui.jsx";
+import { createDemoUI } from "./demo-ui.jsx";
+import { createPlanningUI } from "./planning-ui.jsx";
+import { Workflow } from "./workflow-ui.jsx";
+import { Analytics } from "./analytics-ui.jsx";
+import { SyncStatus } from "./sync-status.jsx";
+import { workspaceAccess } from "../shared/access.mjs";
 import { api } from "./api.mjs";
+import { startPolling } from "./polling.mjs";
 import { tourDeletionSummary } from "./pooling-view.mjs";
 import { todayVietnam as todayVN } from "./dates.mjs";
 import {
   matchesTourSearch,
-  matchesTourSchedule,
-  hasScheduleFilters,
+  normalizeSearchText,
 } from "./tour-search.mjs";
 import "./portal-filters.css";
 const money = (n) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
@@ -65,148 +70,24 @@ const statuses = {
   doing: "Đang thực hiện",
   done: "Hoàn thành",
 };
-const trialSteps = [
-  {
-    title: "Tạo và cập nhật tour",
-    description: "Nhập tour của bạn, sau đó thử sửa lịch hoặc số chỗ.",
-    nav: "tours",
-    actions: ["tour_updated"],
-  },
-  {
-    title: "Xem cổng khách hàng",
-    description: "Kiểm tra lịch và số chỗ sau khi vừa sửa.",
-    nav: "portal",
-    actions: ["portal_viewed"],
-  },
-  {
-    title: "Giao và xử lý công việc",
-    description: "Tạo một việc gắn với tour, rồi đổi trạng thái.",
-    nav: "tasks",
-    actions: ["task_created", "task_status_changed"],
-  },
-];
-const stepDone = (step, actions) =>
-  step.actions.every((action) => actions.has(action));
-const roleNames = {
-  operations: "Điều hành tour",
-  sales: "Sales / Marketing",
-  manager: "Quản lý / Chủ doanh nghiệp",
-  other: "Khác",
-};
 const navItems = [
   ["dashboard", "Tổng quan", LayoutDashboard],
+  ["analytics", "Báo cáo vận hành", BarChart3],
   ["tours", "Quản lý tour", Compass],
   ["tasks", "Công việc", ListTodo],
   ["pooling", "Ghép tour B2B", Handshake],
   ["inbox", "Yêu cầu tư vấn", Inbox],
-  ["research", "Phản hồi MVP", BarChart3],
+  ["workflow", "Quy trình vận hành", GitBranch],
+  ["business", "Giá trị & doanh thu", Calculator],
   ["account", "Tài khoản & nhóm", Settings],
 ];
-function Landscape({ theme = "danang", large = false }) {
-  const gradientId = useId();
-  return (
-    <svg
-      className={"landscape " + (large ? "large" : "")}
-      viewBox="0 0 600 360"
-      role="img"
-      aria-label={
-        theme === "dalat"
-          ? "Minh họa đồi thông"
-          : theme === "phuquoc"
-            ? "Minh họa biển"
-            : "Minh họa phố cổ"
-      }
-    >
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop
-            stopColor={
-              theme === "dalat"
-                ? "#deedff"
-                : theme === "phuquoc"
-                  ? "#cce5ff"
-                  : "#d5eaff"
-            }
-          />
-          <stop offset="1" stopColor="#f1f7ff" />
-        </linearGradient>
-      </defs>
-      <rect width="600" height="360" fill={`url(#${gradientId})`} />
-      <circle cx="450" cy="83" r="34" fill="#fffbdf" />
-      {theme === "dalat" ? (
-        <>
-          <path d="M0 214Q70 110 200 202Q350 76 600 186V360H0" fill="#9bbbcf" />
-          <path
-            d="M0 263Q230 148 390 263Q500 191 600 240V360H0"
-            fill="#7599b5"
-          />
-          <path d="M0 329Q230 206 600 310V360H0" fill="#527594" />
-          {[80, 155, 460, 535].map((x, i) => (
-            <g key={x} transform={`translate(${x} ${190 + (i % 2) * 27})`}>
-              <rect x="-4" width="8" height="90" fill="#465b48" />
-              <path d="M0-80L-35 15H35Z M0-40L-46 45H46Z" fill="#315c4c" />
-            </g>
-          ))}
-          <path d="M250 360L306 260L370 260L324 360" fill="#d6c3a1" />
-        </>
-      ) : theme === "phuquoc" ? (
-        <>
-          <path d="M0 176Q140 170 270 188T600 178V360H0" fill="#76afd8" />
-          <path d="M0 238Q320 210 600 310V360H0" fill="#b4d6ed" />
-          <path d="M0 290Q260 220 600 338V360H0" fill="#e5cfab" />
-          <path
-            d="M92 337Q110 160 155 90"
-            stroke="#6a7861"
-            strokeWidth="13"
-            fill="none"
-          />
-          <path
-            d="M149 110Q75 48 23 113Q96 104 149 125Q190 57 257 82Q200 99 156 131Q209 117 249 162Q184 156 150 136Q109 158 47 164Q83 123 149 110"
-            fill="#456e60"
-          />
-          <path d="M285 231L345 215L392 231L380 240H295Z" fill="#fcf7e8" />
-        </>
-      ) : (
-        <>
-          <rect y="252" width="600" height="108" fill="#7aaccd" />
-          <path
-            d="M0 281Q170 246 340 279T600 267"
-            stroke="#cce3f4"
-            fill="none"
-            strokeWidth="3"
-          />
-          {[15, 145, 285, 440].map((x, i) => (
-            <g key={x}>
-              <rect
-                x={x}
-                y={161 + (i % 2) * 18}
-                width="116"
-                height="107"
-                fill={["#cfaa64", "#dec185", "#cfa570", "#e4c382"][i]}
-              />
-              <path
-                d={`M${x - 9} ${169 + (i % 2) * 18}L${x + 56} ${115 + (i % 2) * 18}L${x + 125} ${169 + (i % 2) * 18}Z`}
-                fill="#6e7764"
-              />
-              <rect x={x + 18} y="203" width="24" height="39" fill="#657765" />
-              <rect x={x + 71} y="203" width="24" height="65" fill="#697461" />
-              <circle cx={x + 58} cy="191" r="10" fill="#cf7655" />
-            </g>
-          ))}
-          <path d="M400 315L494 312L479 326H410Z" fill="#354f49" />
-          <path d="M459 304L459 253" stroke="#596d52" strokeWidth="3" />
-        </>
-      )}
-    </svg>
-  );
-}
 function Logo() {
   return (
     <span className="logo">
       <span className="logo-mark">
         <Compass size={25} />
       </span>
-      taskhub<span className="logo-dot">.</span>
+      TaskHub<span className="logo-dot">.</span>
     </span>
   );
 }
@@ -893,6 +774,7 @@ function TaskEditor({
 
 function Dashboard({
   data,
+  access,
   onNav,
   onTask,
   onTour,
@@ -932,75 +814,10 @@ function Dashboard({
       Inbox,
       "Chờ đội ngũ liên hệ tư vấn",
     ],
-  ];
+  ].filter((s) => s[0] !== "Yêu cầu mới" || access.canReadInquiries);
   return (
     <>
-      <div className="welcome-banner">
-        <div>
-          <Badge tone="blue">
-            <span className="live-dot" />
-            MỘT NGUỒN DỮ LIỆU CHUNG
-          </Badge>
-          <h2>
-            Lịch rõ ràng.
-            <br />
-            Đội ngũ cùng nhịp.
-          </h2>
-          <p>
-            Một nơi theo dõi lịch khởi hành, số chỗ và công việc của đội ngũ.
-          </p>
-          <Button onClick={onPortal}>
-            Xem cổng khách hàng
-            <ArrowUpRight size={16} />
-          </Button>
-        </div>
-        <div className="banner-art">
-          <Landscape theme="dalat" />
-        </div>
-      </div>
-      {showTrial && (
-        <>
-          <DemoLoader data={data} reload={reload} notify={notify} />
-          <TrialPanel onNav={onNav} onPortal={onPortal} />
-        </>
-      )}
-      {showTrial && (
-        <section className="trial-checklist" aria-label="Lộ trình dùng thử">
-          <div className="trial-heading">
-            <div>
-              <h3>Bắt đầu trong 3 bước</h3>
-              <p>Thử các thao tác dưới đây, rồi chia sẻ trải nghiệm của bạn.</p>
-            </div>
-            <Button variant="ghost" onClick={() => onNav("research")}>
-              {data.feedback ? "Xem phản hồi" : "Gửi phản hồi"}
-              <ArrowRight size={16} />
-            </Button>
-          </div>
-          <div className="trial-grid">
-            {trialSteps.map((step, i) => {
-              const done = stepDone(step, new Set(data.completedActions));
-              return (
-                <button
-                  key={step.nav}
-                  className={"trial-item " + (done ? "completed" : "")}
-                  onClick={() =>
-                    step.nav === "portal" ? onPortal() : onNav(step.nav)
-                  }
-                >
-                  <span className="step-number">
-                    {done ? <Check size={17} /> : `0${i + 1}`}
-                  </span>
-                  <span>
-                    <strong>{step.title}</strong>
-                    <small>{step.description}</small>
-                  </span>
-                  <ChevronRight size={17} />
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {showTrial && <DemoLoader data={data} reload={reload} notify={notify} />}
       <div className="stat-grid">
         {stats.map(([label, value, Icon, note]) => (
           <div className="stat-card" key={label}>
@@ -1118,9 +935,8 @@ function Tasks({ data, onNew, onChange, onEdit, pendingId, readOnly = false }) {
         (dueFilter === "overdue" && t.status !== "done" && t.due < todayVN()) ||
         (dueFilter === "today" && t.due === todayVN()) ||
         (dueFilter === "high" && t.priority === "high")) &&
-      (t.title + " " + t.assignee)
-        .toLocaleLowerCase()
-        .includes(query.toLocaleLowerCase()),
+      normalizeSearchText(t.title + " " + t.assignee)
+        .includes(normalizeSearchText(query)),
   );
   return (
     <>
@@ -1264,22 +1080,26 @@ function Workspace({ user, onLogout, onPortal, notify }) {
   const pending = useRef(0);
   const latest = useRef(0);
   const [permission, setPermission] = useState(user.workspace_permission);
-  const [roundTrip, setRoundTrip] = useState(null);
   const readOnly = user.role === "reviewer" || permission === "viewer";
   const [nav, setNav] = useState("dashboard"),
     [data, setData] = useState(null),
     [error, setError] = useState(""),
     [editor, setEditor] = useState(null),
-    [help, setHelp] = useState(false),
     [menu, setMenu] = useState(false),
     [query, setQuery] = useState(""),
     [tourFilter, setTourFilter] = useState("all"),
-    [last, setLast] = useState(""),
+    [lastSuccess, setLastSuccess] = useState(null),
     [pendingTask, setPendingTask] = useState(""),
     [pendingLead, setPendingLead] = useState(""),
     [leadQuery, setLeadQuery] = useState(""),
     [leadStatus, setLeadStatus] = useState("");
   const [poolTourFilter, setPoolTourFilter] = useState("");
+  const [catalog, setCatalog] = useState(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [planningDirty, setPlanningDirty] = useState(false);
+  const leavePlanning = () => !planningDirty || confirm("Bản nháp kế hoạch chưa lưu. Rời khỏi và bỏ thay đổi?");
+  const changeNav = (id) => { if(id!==nav && leavePlanning()) {setPlanningDirty(false);setNav(id);} };
+  const access = data?.access || workspaceAccess({ ...user, workspace_permission: permission });
   const [mobile, setMobile] = useState(
     () => matchMedia("(max-width: 650px)").matches,
   );
@@ -1298,6 +1118,19 @@ function Workspace({ user, onLogout, onPortal, notify }) {
     document.querySelector(".drawer-close")?.focus();
     const close = (e) => {
       if (e.key === "Escape") setMenu(false);
+      if (e.key === "Tab") {
+        const controls = [...document.querySelectorAll(
+          '#workspace-nav button:not(:disabled), #workspace-nav a[href]',
+        )].filter((el) => el.getClientRects().length);
+        const first = controls[0], last = controls.at(-1);
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
     };
     document.addEventListener("keydown", close);
     return () => {
@@ -1309,26 +1142,22 @@ function Workspace({ user, onLogout, onPortal, notify }) {
     const request = ++latest.current;
     pending.current += 1;
     try {
-      const started = performance.now();
       const d = await api("/workspace");
       if (request !== latest.current) return;
       setData(d);
       setPermission(d.workspace_permission || user.workspace_permission);
-      setRoundTrip(Math.round(performance.now() - started));
       setError("");
-      setLast(new Date().toLocaleTimeString("vi-VN"));
+      setLastSuccess(Date.now());
       return d;
     } finally {
       pending.current -= 1;
     }
   }, []);
   useEffect(() => {
-    reload().catch((e) => setError(e.message));
-    const timer = setInterval(() => {
-      if (!document.hidden && pending.current === 0)
-        reload().catch((e) => setError(e.message));
-    }, 5000);
-    return () => clearInterval(timer);
+    return startPolling(reload, {
+      isBusy: () => pending.current > 0,
+      onError: (e) => setError(e.message),
+    });
   }, [reload]);
   async function changeTask(t, status) {
     setPendingTask(t.id);
@@ -1346,14 +1175,44 @@ function Workspace({ user, onLogout, onPortal, notify }) {
   async function changeLead(i, status) {
     setPendingLead(i.id);
     try {
-      await api("/inquiries/" + i.id, "PATCH", { status });
+      await api("/inquiries/" + i.id, "PATCH", { status, version: i.version });
       await reload();
       notify("Đã cập nhật yêu cầu.");
     } catch (e) {
-      notify(e.message, "error");
+      if (e.status === 409) {
+        try {
+          await reload();
+          notify("Yêu cầu đã thay đổi. Đã tải lại; kiểm tra trạng thái mới trước khi sửa.", "error");
+        } catch (refreshError) {
+          setError(refreshError.message);
+          notify("Yêu cầu đã thay đổi. Chưa tải được bản mới; bấm Thử tải lại trước khi sửa.", "error");
+        }
+      } else notify(e.message, "error");
     } finally {
       setPendingLead("");
     }
+  }
+  async function openCatalog() {
+    if (catalogLoading) return;
+    if (catalog) { setEditor({ type: "catalog" }); return; }
+    setCatalogLoading(true);
+    try {
+      const result = await api("/catalog");
+      setCatalog(result);
+      setEditor({ type: "catalog" });
+    } catch (e) { notify(e.message, "error"); }
+    finally { setCatalogLoading(false); }
+  }
+  async function deleteAccount() {
+    const staff = user.role === "staff";
+    if (!confirm(staff
+      ? "Xóa tài khoản nhân viên của bạn? Dữ liệu chung của đội ngũ được giữ lại."
+      : "Xóa tài khoản, nhân viên được mời và toàn bộ dữ liệu trong không gian dùng thử của bạn? Thao tác này không thể hoàn tác.")) return;
+    try {
+      await api("/account", "DELETE");
+      onLogout();
+      notify(staff ? "Đã xóa tài khoản nhân viên. Dữ liệu chung được giữ lại." : "Đã xóa tài khoản và dữ liệu.");
+    } catch (error) { notify(error.message, "error"); }
   }
   async function refreshEditor() {
     const d = await reload();
@@ -1383,13 +1242,18 @@ function Workspace({ user, onLogout, onPortal, notify }) {
   const visibleLeads = (data?.inquiries || []).filter(
     (i) =>
       (!leadStatus || i.status === leadStatus) &&
-      (i.name + " " + i.email + " " + i.tour_title)
-        .toLocaleLowerCase("vi")
-        .includes(leadQuery.toLocaleLowerCase("vi")),
+      normalizeSearchText(i.name + " " + i.email + " " + i.tour_title)
+        .includes(normalizeSearchText(leadQuery)),
   );
-  const allowedNav = navItems.filter(
-    (i) => user.role !== "staff" || i[0] !== "research",
+  const detailTour = editor?.tour && data?.tours.find((tour) => tour.id === editor.tour.id);
+  const allowedNav = navItems.filter(([id]) =>
+    (id !== "inbox" || access.canReadInquiries) &&
+    (id !== "pooling" || access.canReadPooling) &&
+    (id !== "business" || access.canReadPlanning),
   );
+  useEffect(() => {
+    if (!allowedNav.some(([id]) => id === nav)) { setNav("dashboard"); setEditor(null); }
+  }, [nav, access.canReadInquiries, access.canReadPooling, access.canReadPlanning]);
   const current = allowedNav.find((i) => i[0] === nav);
   const minimumReserved = (id) =>
     (data?.pooling || [])
@@ -1403,20 +1267,18 @@ function Workspace({ user, onLogout, onPortal, notify }) {
           (tourFilter === "draft" && !t.published) ||
           (tourFilter === "past" && t.departure < todayVN()) ||
           (tourFilter === "upcoming" && t.departure >= todayVN())) &&
-        (t.title + " " + t.destination)
-          .toLocaleLowerCase("vi")
-          .includes(query.toLocaleLowerCase("vi")),
+        matchesTourSearch(t, query),
     ) || [];
   const descriptions = {
-    dashboard: "Mọi thông tin cần thiết cho một ngày điều hành.",
+    dashboard: "Lịch khởi hành, số chỗ và công việc cần theo dõi.",
+    analytics: "Phân tích lịch tour, công việc và đối soát từ dữ liệu của không gian.",
     tours: "Dữ liệu điều hành và cổng khách hàng cùng một nguồn.",
-    tasks: "Rõ người phụ trách. Đúng thời hạn. Không bỏ sót.",
+    tasks: "Theo dõi người phụ trách, thời hạn và trạng thái công việc.",
     pooling: "Một nơi xác nhận khách ghép và theo dõi số tiền còn phải thu.",
     inbox: "Tiếp nhận yêu cầu ngay cả ngoài giờ làm việc.",
     account: "Gửi lời mời và phân quyền cho người cùng làm việc.",
-    research: ["admin", "reviewer"].includes(user.role)
-      ? "Theo dõi phản hồi và xuất dữ liệu cho nhóm."
-      : "Đánh giá đúng những tính năng bạn đã tự dùng hoặc xem demo.",
+    workflow: "Các bước vận hành, người phụ trách và phạm vi của từng vai trò.",
+    business: "Bản nháp nội bộ: lượng hóa giá trị, soạn gói và dự tính doanh thu.",
   };
   return (
     <div className="app-shell">
@@ -1443,19 +1305,6 @@ function Workspace({ user, onLogout, onPortal, notify }) {
           <X size={20} />
         </button>
         <Logo />
-        <div className="workspace-switch">
-          <span className="workspace-icon">TH</span>
-          <div>
-            <strong>TaskHub</strong>
-            <small>
-              {["admin", "reviewer"].includes(user.role)
-                ? "Không gian điều hành"
-                : user.role === "staff"
-                  ? "Không gian dùng chung"
-                  : "Không gian dùng thử riêng"}
-            </small>
-          </div>
-        </div>
         <div className="nav-caption">KHÔNG GIAN LÀM VIỆC</div>
         <nav>
           {allowedNav.map(([id, label, Icon]) => (
@@ -1465,7 +1314,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
               aria-current={nav === id ? "page" : undefined}
               data-track={"nav:" + id}
               onClick={() => {
-                setNav(id);
+                changeNav(id);
                 setMenu(false);
               }}
             >
@@ -1484,40 +1333,26 @@ function Workspace({ user, onLogout, onPortal, notify }) {
           <div className="sidebar-tip">
             <Globe size={20} />
             <strong>
-              Ít thao tác hơn.
-              <br />
-              Nhiều hành trình hơn.
+              Cổng thông tin tour
             </strong>
-            <button onClick={onPortal}>
+            <button onClick={()=>{if(leavePlanning())onPortal();}}>
               Mở cổng khách hàng
               <ArrowUpRight size={15} />
             </button>
           </div>
-          <button className="help-link" onClick={() => setHelp(true)}>
-            <HelpCircle size={18} />
-            Hướng dẫn & hỗ trợ
-          </button>
           <div className="profile">
             <span className="avatar">{user.name[0]}</span>
             <div>
               <strong>{user.name}</strong>
               <small>
-                {readOnly
-                  ? user.role === "staff"
-                    ? "Nhân viên · chỉ xem"
-                    : "Người đánh giá · chỉ xem"
-                  : user.role === "admin"
-                    ? "Quản trị"
-                    : user.role === "staff"
-                      ? "Nhân viên · được sửa"
-                      : "Người tham gia dùng thử"}
+                {access.label}{readOnly ? " · chỉ xem" : ""}
               </small>
             </div>
             <button
               className="icon-btn"
               title="Đăng xuất"
               aria-label="Đăng xuất"
-              onClick={onLogout}
+              onClick={()=>{if(leavePlanning())onLogout();}}
             >
               <LogOut size={17} />
             </button>
@@ -1545,7 +1380,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
               <span className="live-dot" />
               {user.workspace === "agency" ? "Dữ liệu giả lập" : "Bản dùng thử"}
             </Badge>
-            <button className="text-btn" onClick={onPortal}>
+            <button className="text-btn" onClick={()=>{if(leavePlanning())onPortal();}}>
               <Globe size={16} />
               Cổng khách hàng
               <ArrowUpRight size={14} />
@@ -1556,7 +1391,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
           <div className="page-title">
             <div>
               <div className="eyebrow blue">
-                TASKHUB · ĐIỀU HÀNH CÙNG MỘT NHỊP
+                TASKHUB · ĐIỀU HÀNH TOUR
               </div>
               <h1>{current?.[1]}</h1>
               <p>{descriptions[nav]}</p>
@@ -1565,10 +1400,10 @@ function Workspace({ user, onLogout, onPortal, notify }) {
               {nav === "dashboard" && (
                 <span className="today">
                   <CalendarDays size={16} />
-                  {date(new Date().toISOString().slice(0, 10))}
+                  {date(todayVN())}
                 </span>
               )}
-              {nav === "tours" && !readOnly && (
+              {nav === "tours" && access.canEditTours && (
                 <Button
                   variant="ghost"
                   onClick={() => setEditor({ type: "import" })}
@@ -1577,23 +1412,23 @@ function Workspace({ user, onLogout, onPortal, notify }) {
                   Nhập Excel
                 </Button>
               )}
-              {nav === "tours" && !readOnly && (
+              {nav === "tours" && access.canEditTours && (
                 <Button
                   variant="ghost"
-                  disabled={!data?.catalog?.tours.length}
-                  onClick={() => setEditor({ type: "catalog" })}
+                  disabled={catalogLoading}
+                  onClick={openCatalog}
                 >
                   <Compass size={17} />
-                  Danh mục Én Việt
+                  {catalogLoading ? "Đang tải danh mục…" : "Danh mục Én Việt"}
                 </Button>
               )}
-              {nav === "tours" && !readOnly && (
+              {nav === "tours" && access.canEditTours && (
                 <Button onClick={() => setEditor({ type: "tour" })}>
                   <Plus size={17} />
                   Tạo tour
                 </Button>
               )}
-              {nav === "tasks" && !readOnly && (
+              {nav === "tasks" && access.canEditTasks && (
                 <Button
                   disabled={!data?.tours.length}
                   onClick={() => setEditor({ type: "task" })}
@@ -1602,7 +1437,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
                   Giao công việc
                 </Button>
               )}
-              {nav === "pooling" && !readOnly && (
+              {nav === "pooling" && access.canManageDeals && (
                 <Button
                   disabled={!data?.tours.length}
                   onClick={() => setEditor({ type: "pooling" })}
@@ -1613,30 +1448,9 @@ function Workspace({ user, onLogout, onPortal, notify }) {
               )}
             </div>
           </div>
-          <div className="workspace-notice">
-            <ShieldCheck size={16} />
-            <span>
-              {["admin", "reviewer"].includes(user.role)
-                ? user.workspace === "agency"
-                  ? "Dữ liệu giả lập phục vụ trình diễn, không phải thông tin mở bán thực tế." +
-                    (readOnly
-                      ? " Người đánh giá chỉ có quyền xem."
-                      : " Tour, công việc và phiếu B2B tại đây phục vụ kiểm thử.")
-                  : readOnly
-                    ? "Tài khoản giảng viên / người đánh giá: chỉ xem, không chỉnh sửa dữ liệu."
-                    : "Chỉ công khai tour sau khi đã kiểm tra thông tin."
-                : user.role === "staff"
-                  ? "Không gian dùng chung. Chỉ truy cập dữ liệu theo quyền chủ không gian đã cấp; không nhập thông tin khách hàng thật."
-                  : "Không gian dùng thử riêng. Nhập dữ liệu của bạn hoặc dùng bộ mẫu giả lập; không nhập thông tin khách hàng thật."}
-            </span>
-            <span
-              title="Thời gian tải API ở lần thành công gần nhất trên trình duyệt này; gồm mạng và máy chủ, không phải cam kết hiệu năng."
-              className={"sync-time " + (error ? "stale" : "")}
-            >
-              {error
-                ? "Đồng bộ gián đoạn"
-                : `Cập nhật ${last || "…"}${roundTrip === null ? "" : " · " + roundTrip + " ms"}`}
-            </span>
+          <div className="workspace-sync">
+            {user.workspace === "agency" && <span className="demo-data-label">Dữ liệu giả lập</span>}
+            <SyncStatus lastSuccess={lastSuccess} error={error} compact />
           </div>
           <ErrorBox error={error} />
           {error && (
@@ -1661,7 +1475,8 @@ function Workspace({ user, onLogout, onPortal, notify }) {
             <>
               {nav === "dashboard" && (
                 <Dashboard
-                  readOnly={readOnly}
+                  access={access}
+                  readOnly={!access.canEditTasks}
                   showTrial={
                     !["admin", "reviewer", "staff"].includes(user.role)
                   }
@@ -1670,7 +1485,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
                   data={data}
                   onNav={setNav}
                   onTask={() => setEditor({ type: "task" })}
-                  onTour={(t) => setEditor({ type: "tour", tour: t })}
+                  onTour={(t) => setEditor({ type: "detail", tour: t })}
                   onPortal={onPortal}
                 />
               )}{" "}
@@ -1706,14 +1521,15 @@ function Workspace({ user, onLogout, onPortal, notify }) {
                       <TourCard
                         key={t.id}
                         tour={t}
-                        onOpen={(tour) => setEditor({ type: "tour", tour })}
+                        onOpen={(tour) => setEditor({ type: "detail", tour })}
+                        onEdit={access.canEditTours ? (tour) => setEditor({ type: "tour", tour }) : undefined}
                         onSeats={
-                          readOnly
+                          !access.canEditTours
                             ? undefined
                             : (tour) => setEditor({ type: "seats", tour })
                         }
                         onTask={
-                          readOnly
+                          !access.canEditTasks
                             ? undefined
                             : (tour) => setEditor({ type: "task", tour })
                         }
@@ -1749,7 +1565,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
               )}
               {nav === "tasks" && (
                 <Tasks
-                  readOnly={readOnly}
+                  readOnly={!access.canEditTasks}
                   data={data}
                   onNew={() => setEditor({ type: "task" })}
                   onChange={changeTask}
@@ -1757,27 +1573,28 @@ function Workspace({ user, onLogout, onPortal, notify }) {
                   pendingId={pendingTask}
                 />
               )}{" "}
-              {nav === "pooling" && (
+              {nav === "pooling" && access.canReadPooling && (
                 <Pooling
                   data={data}
                   simulated={user.workspace === "agency"}
                   tourFilter={poolTourFilter}
                   onTourFilter={setPoolTourFilter}
                   readOnly={readOnly}
+                  canManageDeals={access.canManageDeals}
+                  canRecordReceipts={access.canRecordReceipts}
                   onNew={() => setEditor({ type: "pooling" })}
                   onPayment={(pool) => setEditor({ type: "pooling", pool })}
                   reload={reload}
                   notify={notify}
                 />
               )}
-              {nav === "inbox" && (
+              {nav === "inbox" && access.canReadInquiries && (
                 <section className="panel">
                   <div className="panel-header">
                     <h3>
                       Yêu cầu tư vấn{" "}
                       <span className="count">{data.inquiries.length}</span>
                     </h3>
-                    <Badge tone="gray">Chưa giữ chỗ tự động</Badge>
                   </div>
                   <div className="filter-bar inquiry-filters">
                     <label className="search">
@@ -1824,7 +1641,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
                               <td>{i.note || "—"}</td>
                               <td>
                                 <select
-                                  disabled={readOnly || pendingLead === i.id}
+                                  disabled={!access.canEditInquiries || pendingLead === i.id}
                                   aria-label={
                                     "Trạng thái yêu cầu của " + i.name
                                   }
@@ -1872,33 +1689,37 @@ function Workspace({ user, onLogout, onPortal, notify }) {
                 </section>
               )}
               {nav === "account" && (
-                <AccountSettings user={user} notify={notify} />
+                <AccountSettings user={{...user, department: data.department, workspace_permission: permission}} notify={notify} onDelete={deleteAccount} />
               )}
-              {nav === "research" &&
-                user.role !== "staff" &&
-                (["admin", "reviewer"].includes(user.role) ? (
-                  <Research notify={notify} />
-                ) : (
-                  <Feedback data={data} notify={notify} reload={reload} />
-                ))}
+              {nav === "workflow" && <Workflow data={data} access={access} onNav={setNav} />}
+              {nav === "analytics" && <Analytics access={access} />}
+              {nav === "business" && access.canReadPlanning && <BusinessPlanning access={access} notify={notify} onDirtyChange={setPlanningDirty} />}
             </>
           )}
           <footer className="app-footer">
-            <span>TaskHub · Điều hành tour · 0.5.1</span>
+            <span>TaskHub · Điều hành tour · 0.7.3</span>
             <span>Tour · Lịch / số chỗ · Công việc</span>
           </footer>
         </main>
       </div>
-      {editor?.type === "tour" && readOnly && (
+      {(editor?.type === "detail" || (editor?.type === "tour" && !access.canEditTours)) && detailTour && (
         <TourDetails
-          tour={editor.tour}
+          tour={detailTour}
           workspace={user.workspace}
-          readOnly
+          internal
+          readOnly={!access.canEditTours}
+          onEdit={access.canEditTours ? () => setEditor({ type: "tour", tour: detailTour }) : undefined}
           onClose={() => setEditor(null)}
           notify={notify}
         />
       )}
-      {editor?.type === "tour" && !readOnly && (
+      {editor?.type === "detail" && data && !detailTour && (
+        <Modal title="Tour không còn tồn tại" onClose={() => setEditor(null)}>
+          <p>Tour đã bị xóa. Danh sách đã cập nhật; hãy chọn một tour khác.</p>
+          <Button onClick={() => setEditor(null)}>Về danh sách tour</Button>
+        </Modal>
+      )}
+      {editor?.type === "tour" && access.canEditTours && (
         <TourEditor
           tour={editor.tour}
           prefill={editor.prefill}
@@ -1917,7 +1738,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
           }}
         />
       )}
-      {editor?.type === "task" && !readOnly && (
+      {editor?.type === "task" && access.canEditTasks && (
         <TaskEditor
           tours={data.tours}
           defaultTourId={editor.tour?.id}
@@ -1932,14 +1753,14 @@ function Workspace({ user, onLogout, onPortal, notify }) {
           }}
         />
       )}
-      {editor?.type === "catalog" && !readOnly && data?.catalog && (
+      {editor?.type === "catalog" && access.canEditTours && catalog && (
         <CatalogPicker
-          catalog={data.catalog}
+          catalog={catalog}
           onClose={() => setEditor(null)}
           onUse={(prefill) => setEditor({ type: "tour", prefill })}
         />
       )}
-      {editor?.type === "import" && !readOnly && (
+      {editor?.type === "import" && access.canEditTours && (
         <ImportTours
           onClose={() => setEditor(null)}
           onSave={async (count) => {
@@ -1948,7 +1769,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
           }}
         />
       )}
-      {editor?.type === "seats" && !readOnly && (
+      {editor?.type === "seats" && access.canEditTours && (
         <SeatEditor
           onRefresh={refreshEditor}
           tour={editor.tour}
@@ -1960,7 +1781,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
           }}
         />
       )}
-      {editor?.type === "pooling" && !readOnly && (
+      {editor?.type === "pooling" && (editor.pool ? access.canRecordReceipts : access.canManageDeals) && (
         <PoolingEditor
           onRefresh={refreshEditor}
           tours={data.tours}
@@ -1972,52 +1793,25 @@ function Workspace({ user, onLogout, onPortal, notify }) {
           }}
         />
       )}
-      {help && (
-        <Help
-          user={user}
-          onNav={(nav) => (nav === "portal" ? onPortal() : setNav(nav))}
-          onClose={() => setHelp(false)}
-          onDelete={async () => {
-            if (
-              !window.confirm(
-                user.role === "staff"
-                  ? "Xóa tài khoản nhân viên của bạn? Dữ liệu chung của đội ngũ được giữ lại."
-                  : "Xóa tài khoản, nhân viên được mời và toàn bộ dữ liệu trong không gian dùng thử của bạn? Thao tác này không thể hoàn tác.",
-              )
-            )
-              return;
-            try {
-              await api("/account", "DELETE");
-              onLogout();
-              notify(
-                user.role === "staff"
-                  ? "Đã xóa tài khoản nhân viên. Dữ liệu chung được giữ lại."
-                  : "Đã xóa tài khoản và dữ liệu.",
-              );
-            } catch (e) {
-              notify(e.message, "error");
-            }
-          }}
-        />
-      )}
     </div>
   );
 }
 
-const { Auth, AccountLink, AccountSettings } = createAccountUI({
+const { Auth, AccountLink, AccountSettings, OperationsEntry } = createAccountUI({
   Modal,
   Button,
   Field,
   ErrorBox,
   Badge,
+  Logo,
   api,
 });
-const { DemoLoader, TrialPanel, TrialSummary } = createTrialUI({
+const { DemoLoader } = createDemoUI({
   Button,
-  Field,
   ErrorBox,
   api,
 });
+const BusinessPlanning = createPlanningUI({Button, Field, ErrorBox, api, money});
 const { TourCard, CatalogPicker, Portal, TourDetails } = createPortalUI({
   Modal,
   Button,
@@ -2042,25 +1836,9 @@ const { ImportTours, SeatEditor, PoolingEditor, Pooling } = createOperationsUI({
   money,
   date,
 });
-const {
-  FeatureFeedback: Feedback,
-  Research,
-  Help,
-} = createExperienceUI({
-  Modal,
-  Button,
-  Field,
-  ErrorBox,
-  Empty,
-  Badge,
-  api,
-  money,
-  date,
-  roleNames,
-  TrialSummary,
-});
 
 function App() {
+  const sessionRequest = useRef(0);
   const [user, setUser] = useState(null),
     [ready, setReady] = useState(false),
     [path, setPath] = useState(location.pathname),
@@ -2070,7 +1848,7 @@ function App() {
   const [accountLink, setAccountLink] = useState(() => {
     if (typeof location === "undefined") return null;
     const q = new URLSearchParams(location.search);
-    const kind = ["invite", "reset", "verify"].find((k) => q.has(k));
+    const kind = ["invite", "reset"].find((k) => q.has(k));
     return kind ? { kind, token: q.get(kind) } : null;
   });
   const navigate = (p) => {
@@ -2079,19 +1857,30 @@ function App() {
     window.scrollTo(0, 0);
   };
   const loadSession = useCallback(async () => {
+    const request = ++sessionRequest.current;
     try {
       const result = await api("/session");
+      if (request !== sessionRequest.current) return;
       setUser(result.user);
       setSessionError("");
     } catch (e) {
-      setSessionError(e.message);
+      if (request === sessionRequest.current) setSessionError(e.message);
     } finally {
-      setReady(true);
+      if (request === sessionRequest.current) setReady(true);
     }
   }, []);
+  const acceptUser = (u) => {
+    // A delayed initial session check must not undo a completed sign-in.
+    sessionRequest.current += 1;
+    setUser(u);
+    setReady(true);
+    setSessionError("");
+    navigate("/app");
+  };
   useEffect(() => {
     // Remove account tokens before any interaction collection or external link.
-    if (accountLink) history.replaceState({}, "", location.pathname);
+    if (accountLink || new URLSearchParams(location.search).has("verify"))
+      history.replaceState({}, "", location.pathname);
     const handler = () => setPath(location.pathname);
     window.addEventListener("popstate", handler);
     loadSession();
@@ -2108,6 +1897,7 @@ function App() {
     try {
       await flushInteractions();
       await api("/logout", "POST", {});
+      sessionRequest.current += 1;
       setUser(null);
       navigate("/");
     } catch (e) {
@@ -2116,7 +1906,9 @@ function App() {
   };
   const isApp = path === "/app";
   const workspace = path.startsWith("/portal/") ? path.split("/")[2] : "agency";
-  if (!ready)
+  // Public tours do not depend on sign-in; load both requests in parallel.
+  // Keep the private workspace and account links behind the session check.
+  if (!ready && (isApp || accountLink))
     return (
       <div className="initial-loading">
         <Logo />
@@ -2140,11 +1932,12 @@ function App() {
           onPortal={() => navigate("/portal/" + user.workspace)}
           notify={notify}
         />
+      ) : isApp ? (
+        <OperationsEntry onAuth={setAuth} onPortal={() => navigate("/")} />
       ) : (
         <Portal
           workspace={workspace}
           user={user}
-          onAuth={setAuth}
           onWorkspace={() => navigate("/app")}
           notify={notify}
         />
@@ -2154,10 +1947,7 @@ function App() {
           link={accountLink}
           onClose={() => setAccountLink(null)}
           refreshSession={loadSession}
-          onUser={(u) => {
-            setUser(u);
-            navigate("/app");
-          }}
+          onUser={acceptUser}
         />
       )}
       {auth && !accountLink && (
@@ -2165,11 +1955,7 @@ function App() {
           mode={auth}
           setMode={setAuth}
           onClose={() => setAuth(null)}
-          onUser={(u) => {
-            setUser(u);
-            setSessionError("");
-            navigate("/app");
-          }}
+          onUser={acceptUser}
         />
       )}
       {toast && (

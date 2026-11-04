@@ -1,6 +1,6 @@
 // Export the existing TaskHub UI/API into a prepared Sites Vinext checkout.
 // Cloud writes use D1 atomic batches; local Node/Turso code stays unchanged.
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, existsSync, rmSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import assert from 'node:assert/strict';
 const target = resolve(process.argv[2] || '');
@@ -11,8 +11,15 @@ put('lib/catalog.mjs', 'export const referenceCatalog = '+readFileSync('catalog/
 put('lib/operations.mjs',readFileSync('server/operations.mjs','utf8'));
 put('lib/feature-feedback.mjs',readFileSync('server/feature-feedback.mjs','utf8'));
 put('lib/accounts.mjs',readFileSync('server/accounts.mjs','utf8'));
+put('lib/planning.mjs',readFileSync('server/planning.mjs','utf8'));
+put('lib/analytics.mjs',readFileSync('server/analytics.mjs','utf8'));
+for(const file of ['access.mjs','planning.mjs','analytics.mjs','xlsx.mjs']) put('shared/'+file,readFileSync('shared/'+file,'utf8'));
+const packageFile=JSON.parse(readFileSync(join(target,'package.json'),'utf8'));
+packageFile.dependencies.fflate=JSON.parse(readFileSync('package.json','utf8')).dependencies.fflate;
+put('package.json',JSON.stringify(packageFile,null,2)+'\n');
 put('lib/demo.mjs',readFileSync('server/demo.mjs','utf8'));
-put('lib/trials.mjs',readFileSync('server/trials.mjs','utf8'));
+// Remove generated sources for retired features from the retained cloud checkout.
+for (const file of ['lib/trials.mjs','app/trial-ui.jsx','app/trial.css','app/experience-ui.jsx','app/experience.css']) rmSync(join(target,file),{force:true});
 let api = readFileSync('server/index.mjs', 'utf8').replaceAll('\r\n','\n');
 const replace = (before, after) => { assert.equal(api.split(before).length, 2, 'API export contract changed: ' + before.slice(0, 60)); api = api.replace(before, after); };
 api = api.replace('import http from "node:http";\n', '')
@@ -131,14 +138,6 @@ api=api.slice(0,taskStart)+`      await db.batch([
         ...eventStatement(u,'task_created',id),
       ]);
 `+api.slice(taskEnd);
-const feedbackStart=api.indexOf('      await transaction(db, async () => {',api.indexOf('if (p === "/api/feedback"'));
-const feedbackEnd=api.indexOf('      return json(res, { ok: true });',feedbackStart);
-assert.ok(feedbackStart>0 && feedbackEnd>feedbackStart);
-api=api.slice(0,feedbackStart)+`      await db.batch([
-        ['INSERT INTO feedback VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET portal=excluded.portal,operations=excluded.operations,sync=excluded.sync,ease=excluded.ease,intent=excluded.intent,price=excluded.price,liked=excluded.liked,disliked=excluded.disliked,created=excluded.created',[u.id,...values,intent,price,liked,disliked,now()]],
-        ...eventStatement(u,'feedback_submitted'),
-      ]);
-`+api.slice(feedbackEnd);
 replace('export const server = http.createServer(async (req, res) => {','return async function handle(req, res) {');
 replace('    const url = new URL(req.url, "http://localhost");','    await retention();\n    const url = new URL(req.url, "http://localhost");');
 // The framework serves frontend assets; this module handles API requests only.
@@ -207,20 +206,26 @@ export async function handleApi(request) {
 }
 `);
 put('app/api/[...path]/route.ts', `import {handleApi} from '../../../lib/route.mjs';\nexport const dynamic='force-dynamic';\nexport const GET=handleApi;export const POST=handleApi;export const PUT=handleApi;export const PATCH=handleApi;export const DELETE=handleApi;export const HEAD=handleApi;\n`);
-let ui=readFileSync('src/main.jsx','utf8').replaceAll('\r\n','\n').replace('import { createRoot } from "react-dom/client";\n','').replace('import "./styles.css";\n','').replace('function App() {','export default function App() {').replace('useState(location.pathname)','useState(typeof location === "undefined" ? "/" : location.pathname)').replace('createRoot(document.getElementById("root")).render(<App />);','');
-put('app/TaskHub.jsx','"use client";\n'+ui);
+let ui=readFileSync('src/main.jsx','utf8').replaceAll('\r\n','\n').replace('import { createRoot } from "react-dom/client";\n','').replace('import "./styles.css";\n','').replace('createRoot(document.getElementById("root")).render(<App />);','');
+// This retained SPA reads browser routes/account links. Mount it after hydration
+// so direct /app and /portal links have the same initial server/client markup.
+put('app/TaskHub.jsx','"use client";\n'+ui+`
+export default function HostedTaskHub() {
+  const [mounted,setMounted]=useState(false);
+  useEffect(()=>setMounted(true),[]);
+  return mounted ? <App/> : <div className="initial-loading"><Logo/><p>Đang mở TaskHub…</p></div>;
+}
+`);
 put('app/operations-ui.jsx',readFileSync('src/operations-ui.jsx','utf8'));
 put('app/operations-polish.css',readFileSync('src/operations-polish.css','utf8'));
-put('app/experience-ui.jsx',readFileSync('src/experience-ui.jsx','utf8'));
-put('app/experience.css',readFileSync('src/experience.css','utf8'));
 put('app/import-tours.mjs',readFileSync('src/import-tours.mjs','utf8'));
 put('app/interactions.mjs',readFileSync('src/interactions.mjs','utf8'));
-for (const file of ['api.mjs','pooling-view.mjs','dates.mjs','tour-search.mjs','portal-filters.css','tour-media.jsx','tour-media-data.mjs','tour-media.css','portal-ui.jsx','accounts-ui.jsx','accounts.css','trial-ui.jsx','trial.css']) {
+for (const file of ['api.mjs','polling.mjs','pooling-view.mjs','dates.mjs','tour-search.mjs','portal-filters.css','tour-media.jsx','tour-media-data.mjs','tour-image-variants.mjs','tour-media.css','portal-ui.jsx','accounts-ui.jsx','accounts.css','demo-ui.jsx','demo.css','sync-status.jsx','sync-state.mjs','workflow-ui.jsx','planning-ui.jsx','workspace-tools.css','analytics-ui.jsx','analytics.css','print-page.jsx','print-page.css','export-file.mjs']) {
   put('app/'+file,readFileSync('src/'+file,'utf8'));
 }
 put('app/globals.css',readFileSync('src/styles.css','utf8'));
 for(const [file,relative] of [['app/page.tsx','./TaskHub'],['app/app/page.tsx','../TaskHub'],['app/portal/[workspace]/page.tsx','../../TaskHub']]) put(file,`import TaskHub from '${relative}';\nexport default function Page(){return <TaskHub/>;}\n`);
-put('app/layout.tsx',`import './globals.css';\nexport const metadata={title:'TaskHub · Điều hành tour, cùng một nhịp',description:'TaskHub hỗ trợ doanh nghiệp lữ hành quản lý tour, lịch/số chỗ và công việc.',icons:{icon:'/favicon.svg'}};\nexport default function Layout({children}:{children:React.ReactNode}){return <html lang="vi"><body>{children}</body></html>;}\n`);
+put('app/layout.tsx',`import './globals.css';\nexport const metadata={title:'TaskHub · Quản lý tour và lịch khởi hành',description:'TaskHub hỗ trợ doanh nghiệp lữ hành quản lý tour, lịch/số chỗ và công việc.',icons:{icon:'/favicon.svg'}};\nexport default function Layout({children}:{children:React.ReactNode}){return <html lang="vi"><body>{children}</body></html>;}\n`);
 put('README.md',`# TaskHub cloud\n\nGenerated from the TaskHub FE/BE by scripts/export-sites.mjs. Uses Sites Workers and persistent D1, independent of the owner's PC. Runtime credentials are private environment secrets. No CP2 or local personal data is imported.\n`);
 copyFileSync('cloud/schema.ts',join(target,'db/schema.ts'));
 copyFileSync('cloud/favicon.svg',join(target,'public/favicon.svg'));
@@ -238,7 +243,17 @@ function copyMigrations(from,to) {
   for(const entry of readdirSync(from,{withFileTypes:true})) {
     const source=join(from,entry.name),dest=join(to,entry.name);
     if(entry.isDirectory())copyMigrations(source,dest);
-    else { if(existsSync(dest))assert.ok(readFileSync(source).equals(readFileSync(dest)),'Migration history differs; preserve applied files: '+entry.name); else copyFileSync(source,dest); }
+    else if (existsSync(dest)) {
+      if (entry.name === '_journal.json') {
+        const oldJournal = JSON.parse(readFileSync(dest, 'utf8'));
+        const nextJournal = JSON.parse(readFileSync(source, 'utf8'));
+        assert.equal(nextJournal.version, oldJournal.version, 'Preserve migration journal format');
+        assert.equal(nextJournal.dialect, oldJournal.dialect, 'Preserve migration journal dialect');
+        assert.deepEqual(nextJournal.entries.slice(0, oldJournal.entries.length), oldJournal.entries, 'Applied migration journal entries are immutable');
+        // Append metadata for new migrations; never rewrite applied entries.
+        copyFileSync(source, dest);
+      } else assert.ok(readFileSync(source).equals(readFileSync(dest)), 'Migration history differs; preserve applied files: ' + entry.name);
+    } else copyFileSync(source,dest);
   }
 }
 copyMigrations('cloud/drizzle',join(target,'drizzle'));

@@ -18,10 +18,13 @@ export async function openDatabase(dir = process.env.DATA_DIR || "./data") {
   await db.exec(`CREATE TABLE IF NOT EXISTS pooling(id TEXT PRIMARY KEY,workspace TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,tour_id TEXT NOT NULL REFERENCES tours(id) ON DELETE CASCADE,partner TEXT NOT NULL,seats INTEGER NOT NULL CHECK(seats>0 AND seats<=1000),unit_price INTEGER NOT NULL CHECK(unit_price>=0 AND unit_price<=1000000000),paid INTEGER NOT NULL DEFAULT 0 CHECK(paid>=0 AND paid<=seats*unit_price),status TEXT NOT NULL CHECK(status IN ('pending','confirmed','cancelled')),note TEXT NOT NULL,version INTEGER NOT NULL DEFAULT 1,created TEXT NOT NULL,updated TEXT NOT NULL); CREATE INDEX IF NOT EXISTS pooling_workspace ON pooling(workspace); CREATE INDEX IF NOT EXISTS pooling_tour ON pooling(tour_id);`);
   const taskColumns = await db.prepare('PRAGMA table_info(tasks)').all();
   if (!taskColumns.some(column => column.name === 'version')) await db.exec('ALTER TABLE tasks ADD COLUMN version INTEGER NOT NULL DEFAULT 1');
+  const inquiryColumns = await db.prepare('PRAGMA table_info(inquiries)').all();
+  if (!inquiryColumns.some(column => column.name === 'version')) await db.exec('ALTER TABLE inquiries ADD COLUMN version INTEGER NOT NULL DEFAULT 1');
   await db.exec(`CREATE TABLE IF NOT EXISTS feature_feedback(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,entries TEXT NOT NULL,price INTEGER CHECK(price IS NULL OR (price>=0 AND price<=100000000)),price_status TEXT NOT NULL CHECK(price_status IN ('provided','undecided','not_decider','declined')),liked TEXT NOT NULL,disliked TEXT NOT NULL,created TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS pooling_audit(id TEXT PRIMARY KEY,workspace TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,pooling_id TEXT NOT NULL REFERENCES pooling(id) ON DELETE CASCADE,actor_id TEXT REFERENCES users(id) ON DELETE SET NULL,action TEXT NOT NULL,paid_before INTEGER NOT NULL,paid_after INTEGER NOT NULL,status_before TEXT NOT NULL,status_after TEXT NOT NULL,created TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS pooling_audit_workspace ON pooling_audit(workspace); CREATE INDEX IF NOT EXISTS pooling_audit_pooling ON pooling_audit(pooling_id);`);
   await db.exec(readFileSync(new URL('./pooling-triggers.sql',import.meta.url),'utf8'));
+  // Historical schema compatibility only; no active feature uses account_profiles.
   await db.exec(`CREATE TABLE IF NOT EXISTS account_profiles(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,verified_at TEXT);
     CREATE TABLE IF NOT EXISTS account_tokens(token TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,purpose TEXT NOT NULL CHECK(purpose IN ('verify','reset')),expires INTEGER NOT NULL,used_at TEXT,created TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS account_tokens_user ON account_tokens(user_id,purpose);
@@ -29,6 +32,12 @@ export async function openDatabase(dir = process.env.DATA_DIR || "./data") {
     CREATE INDEX IF NOT EXISTS workspace_members_workspace ON workspace_members(workspace);
     CREATE TABLE IF NOT EXISTS workspace_invites(id TEXT PRIMARY KEY,token TEXT UNIQUE NOT NULL,workspace TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,email TEXT NOT NULL,permission TEXT NOT NULL CHECK(permission IN ('viewer','editor')),invited_by TEXT REFERENCES users(id) ON DELETE SET NULL,expires INTEGER NOT NULL,used_at TEXT,created TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS workspace_invites_workspace ON workspace_invites(workspace);`);
+  for (const table of ['workspace_members','workspace_invites']) {
+    const columns = await db.prepare('PRAGMA table_info('+table+')').all();
+    if (!columns.some(column => column.name === 'department'))
+      await db.exec("ALTER TABLE "+table+" ADD COLUMN department TEXT NOT NULL DEFAULT 'general'");
+  }
+  await db.exec(`CREATE TABLE IF NOT EXISTS workspace_planning(workspace TEXT PRIMARY KEY REFERENCES workspaces(id) ON DELETE CASCADE,payload TEXT NOT NULL,version INTEGER NOT NULL DEFAULT 1,updated TEXT NOT NULL,updated_by TEXT REFERENCES users(id) ON DELETE SET NULL);`);
   if (!db.remote)
     await db.exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;");
   return db;

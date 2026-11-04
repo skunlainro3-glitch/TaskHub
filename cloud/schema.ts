@@ -25,7 +25,7 @@ export const tasks = sqliteTable('tasks', {
 export const inquiries = sqliteTable('inquiries', {
   id: text('id').primaryKey(),workspace: requiredText('workspace').references(() => workspaces.id,{onDelete:'cascade'}),
   tour_id: requiredText('tour_id').references(() => tours.id,{onDelete:'cascade'}),name: requiredText('name'),email: requiredText('email'),people: requiredInteger('people'),
-  note: requiredText('note'),status: requiredText('status'),created: requiredText('created'),consent_version: requiredText('consent_version'),
+  note: requiredText('note'),status: requiredText('status'),created: requiredText('created'),consent_version: requiredText('consent_version'),version: requiredInteger('version').default(1),
 });
 export const events = sqliteTable('events', {
   id: text('id').primaryKey(),user_id: requiredText('user_id').references(() => users.id,{onDelete:'cascade'}),action: requiredText('action'),entity: requiredText('entity'),created: requiredText('created'),
@@ -56,6 +56,7 @@ export const poolingAudit = sqliteTable('pooling_audit', {
   status_before:requiredText('status_before'),status_after:requiredText('status_after'),created:requiredText('created'),
 },t=>[index('pooling_audit_workspace').on(t.workspace),index('pooling_audit_pooling').on(t.pooling_id)]);
 // Additive account tables preserve the original users insert contract and data.
+// Preserve deployed schema/history; this table has no active application reader/writer.
 export const accountProfiles = sqliteTable('account_profiles', {
   user_id:text('user_id').primaryKey().references(()=>users.id,{onDelete:'cascade'}),verified_at:text('verified_at'),
 });
@@ -65,10 +66,14 @@ export const accountTokens = sqliteTable('account_tokens', {
 },t=>[index('account_tokens_user').on(t.user_id,t.purpose),check('account_token_purpose',sql`${t.purpose} IN ('verify','reset')`)]);
 export const workspaceMembers = sqliteTable('workspace_members', {
   user_id:text('user_id').primaryKey().references(()=>users.id,{onDelete:'cascade'}),workspace:requiredText('workspace').references(()=>workspaces.id,{onDelete:'cascade'}),
-  permission:requiredText('permission'),created:requiredText('created'),
+  permission:requiredText('permission'),created:requiredText('created'),department:requiredText('department').default('general'),
 },t=>[index('workspace_members_workspace').on(t.workspace),check('member_permission',sql`${t.permission} IN ('viewer','editor')`)]);
 export const workspaceInvites = sqliteTable('workspace_invites', {
   id:text('id').primaryKey(),token:requiredText('token').unique(),workspace:requiredText('workspace').references(()=>workspaces.id,{onDelete:'cascade'}),
   email:requiredText('email'),permission:requiredText('permission'),invited_by:text('invited_by').references(()=>users.id,{onDelete:'set null'}),
-  expires:requiredInteger('expires'),used_at:text('used_at'),created:requiredText('created'),
+  expires:requiredInteger('expires'),used_at:text('used_at'),created:requiredText('created'),department:requiredText('department').default('general'),
 },t=>[index('workspace_invites_workspace').on(t.workspace),check('invite_permission',sql`${t.permission} IN ('viewer','editor')`)]);
+export const workspacePlanning = sqliteTable('workspace_planning', {
+  workspace:text('workspace').primaryKey().references(()=>workspaces.id,{onDelete:'cascade'}),payload:requiredText('payload'),
+  version:requiredInteger('version').default(1),updated:requiredText('updated'),updated_by:text('updated_by').references(()=>users.id,{onDelete:'set null'}),
+});

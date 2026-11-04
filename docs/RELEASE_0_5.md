@@ -1,5 +1,7 @@
 # TaskHub 0.5 — bàn giao 19/10/2026
 
+Đây là lịch sử phát hành 19/10. Ngày 24/10, chủ dự án yêu cầu xóa chức năng đo bài thử và xác minh email; hai chức năng này không còn trong mã hiện hành. Xem README và VALIDATION để kiểm tra trạng thái mới nhất.
+
 Web: https://taskhub-travel.pages.dev/ · PR: https://github.com/skunlainro3-glitch/TaskHub/pull/6.
 
 ## Đã bổ sung
@@ -28,10 +30,10 @@ Backend Sites version 10, source `33c2390b811afc3b99f3b99af2d79de27bba1e24d`; Pa
 ## Khi bạn cùng nhóm clone
 
 ```powershell
-git clone --branch build https://github.com/skunlainro3-glitch/TaskHub.git
+git clone --branch main https://github.com/skunlainro3-glitch/TaskHub.git
 cd TaskHub
 npm ci
 npm run dev
 ```
 
-Cài Node.js 24 trước. Mở http://127.0.0.1:5173; dữ liệu local tách khỏi production. Hướng dẫn mã ở [CODE_GUIDE](CODE_GUIDE.md). Làm việc trên build, review qua PR vào dev; tag cũ giữ nguyên.
+Cài Node.js 24 trước. Mở http://127.0.0.1:5173; dữ liệu local tách khỏi production. Hướng dẫn mã ở [CODE_GUIDE](CODE_GUIDE.md). Quy trình nhánh hiện hành: làm việc trên `main`, mở PR `main → dev` để chủ repo duyệt; `dev` vẫn là nhánh mặc định được bảo vệ, tag cũ giữ nguyên.

@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { qaTour } from './fixtures.mjs';
-import { featureFeedbackInput,featureIds,testerFields,featureFields } from '../server/feature-feedback.mjs';
+import { parseFeatureFeedback,featureIds,testerFields,featureFields } from '../server/feature-feedback.mjs';
 import { summarizeSurvey } from '../scripts/survey-report.mjs';
 import { parseCsv } from '../scripts/research-report.mjs';
 
@@ -20,26 +20,15 @@ const answer = () => ({
   price:null,price_status:'undecided',liked:'Điểm kiểm thử',disliked:'=FORMULA MUST STAY TEXT',
 });
 
-test('feature feedback preserves unknown versus zero and rejects invented experience scores',()=>{
-  assert.equal(featureFeedbackInput(answer()).price,null);
-  assert.equal(featureFeedbackInput({...answer(),price:0,price_status:'provided'}).price,0);
-  for (const price_status of ['undecided','not_decider','declined']) {
-    assert.equal(featureFeedbackInput({...answer(),price_status}).price,null);
-    assert.throws(()=>featureFeedbackInput({...answer(),price_status,price:0}),/trống/);
-  }
-  assert.throws(()=>featureFeedbackInput({...answer(),price_status:'provided'}),/Mức phí/);
-  assert.throws(()=>featureFeedbackInput({...answer(),entries:answer().entries.slice(1)}),/6 chức năng/);
-  assert.throws(()=>featureFeedbackInput({...answer(),entries:answer().entries.map((e,i)=>i===1?{...e,feature:'portal'}:e)}),/bị trùng/);
-  for (const bad of [{importance:0},{ease:5},{result:'completed'},{intent:'yes'}]) {
-    const a=answer();a.entries[2]={...a.entries[2],...bad};assert.throws(()=>featureFeedbackInput(a));
-  }
-  const demo=answer();demo.entries[1].ease=3;assert.throws(()=>featureFeedbackInput(demo),/xem demo/);
-  const self=answer();self.entries[0].result='viewed';assert.throws(()=>featureFeedbackInput(self),/tự thao tác/);
-  const na=answer();na.entries[0].importance=null;na.entries[0].ease=null;assert.equal(featureFeedbackInput(na).entries[0].ease,null);
-  const none=answer();none.entries=none.entries.map(e=>({...e,mode:'untried',result:'untried',importance:null,ease:null,intent:'na'}));assert.throws(()=>featureFeedbackInput(none),/ít nhất/);
+test('historical feature feedback stays readable without converting unknown values to zero',()=>{
+  assert.equal(parseFeatureFeedback(null),null);
+  const unknown=parseFeatureFeedback({entries:JSON.stringify(answer().entries),price:null,price_status:'undecided'});
+  const zero=parseFeatureFeedback({entries:JSON.stringify(answer().entries),price:0,price_status:'provided'});
+  assert.equal(unknown.price,null);assert.equal(zero.price,0);
+  assert.equal(unknown.entries[1].ease,null);assert.equal(unknown.entries[2].mode,'untried');
 });
 
-test('polished API: additive data, six-feature research, guarded task CRUD and past departures',async t=>{
+test('polished API: historical survey exports, guarded task CRUD and past departures',async t=>{
   const tempRoot=resolve(tmpdir()),dir=mkdtempSync(join(tempRoot,'taskhub-polish-'));
   const path=join(dir,'taskhub.sqlite');
   // A pre-existing nine-column tasks table must gain a version without losing a row.
@@ -63,33 +52,40 @@ test('polished API: additive data, six-feature research, guarded task CRUD and p
     assert.equal(a.status,201);assert.equal(b.status,201);
     const admin=await request('/login','POST',{email:'admin@taskhub.local',password:'Polish-admin-secret-2026!'}),reviewer=await request('/login','POST',{email:'reviewer@example.test',password:'Polish-reviewer-secret-2026!'});
     const workspace=async c=>(await request('/workspace','GET',null,c||cookie)).body;
-    await t.test('feature survey is optional per score, upserted, tenant-private and exported without fake legacy conversion',async()=>{
+    // Seed prior records directly in the disposable DB, never through retired APIs.
+    const seedHistory=(id,{legacy,features,created=new Date().toISOString()})=>{
+      const archive=new DatabaseSync(path);
+      try {
+        if(legacy)archive.prepare('INSERT INTO feedback VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET liked=excluded.liked,created=excluded.created').run(id,legacy.portal,legacy.operations,legacy.sync,legacy.ease,legacy.intent,legacy.price,legacy.liked,legacy.disliked,created);
+        if(features)archive.prepare('INSERT INTO feature_feedback VALUES (?,?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET entries=excluded.entries,price=excluded.price,price_status=excluded.price_status,liked=excluded.liked,disliked=excluded.disliked,created=excluded.created').run(id,JSON.stringify(features.entries),features.price,features.price_status,features.liked,features.disliked,created);
+      } finally {archive.close();}
+    };
+    await t.test('retired survey writes return 404 while historical records and protected exports remain intact',async()=>{
       const empty=await request('/export/survey-testers','GET',null,admin.cookie);assert.deepEqual(parseCsv(empty.body).headers,testerFields);assert.equal(parseCsv(empty.body).rows.length,0);
-      assert.equal((await request('/feedback/features','POST',answer())).status,401);
-      assert.equal((await request('/feedback/features','POST',answer(),admin.cookie)).status,403);
-      assert.equal((await request('/feedback/features','POST',answer(),reviewer.cookie)).status,403);
-      assert.equal((await request('/feedback/features','POST',answer(),cookie)).status,200);
-      assert.equal((await workspace()).featureFeedback.entries.length,6);assert.equal((await workspace()).featureFeedback.price,null);assert.equal((await workspace()).feedback,null);
-      assert.equal((await workspace(b.cookie)).featureFeedback,null);
+      const before=(await request('/research','GET',null,admin.cookie)).body.events;
+      for(const c of [undefined,admin.cookie,reviewer.cookie,cookie,b.cookie]) {
+        assert.equal((await request('/feedback/features','POST',answer(),c)).status,404);
+        assert.equal((await request('/feedback','POST',{portal:4,operations:3,sync:4,ease:4,intent:'maybe',price:0},c)).status,404);
+      }
+      assert.equal((await request('/research','GET',null,admin.cookie)).body.events,before,'Retired endpoints do not create interaction data');
+      const current=await workspace();for(const key of ['feedback','featureFeedback','completedActions'])assert.equal(Object.hasOwn(current,key),false);
       const legacy={portal:4,operations:3,sync:4,ease:4,intent:'maybe',price:0,liked:'Legacy kept',disliked:''};
-      assert.equal((await request('/feedback','POST',legacy,cookie)).status,200);
-      const rich={...answer(),price:0,price_status:'provided'};assert.equal((await request('/feedback/features','POST',rich,cookie)).status,200);
-      const data=await workspace();assert.equal(data.feedback.liked,'Legacy kept');assert.equal(data.featureFeedback.price,0);
+      seedHistory(a.body.user.id,{legacy,features:{...answer(),price:0,price_status:'provided'}});
       const research=(await request('/research','GET',null,reviewer.cookie)).body;
       assert.equal(research.feedback.length,1);assert.equal(research.featureFeedback.length,1);assert.equal(research.uniqueResponseCount,1);assert.equal(research.readyToReview,0);
-      assert.equal(research.featureFeedback[0].entries[1].ease,null);
+      assert.equal(research.feedback[0].liked,'Legacy kept');assert.equal(research.featureFeedback[0].entries[1].ease,null);
       assert.equal((await request('/export/survey-testers','GET',null,cookie)).status,403);
       const testers=await request('/export/survey-testers','GET',null,admin.cookie),features=await request('/export/survey-features','GET',null,reviewer.cookie);
       assert.deepEqual(parseCsv(testers.body).headers,testerFields);assert.deepEqual(parseCsv(features.body).headers,featureFields);
       assert.equal(parseCsv(testers.body).rows.length,1);assert.equal(parseCsv(features.body).rows.length,2,'Untried features must not become observations');
       assert.ok(testers.body.includes("'=FORMULA MUST STAY TEXT"));
       const report=summarizeSurvey(testers.body,features.body);assert.equal(report.experiencedEmailRecords,1);assert.equal(report.willingnessToPay.n,1);assert.equal(report.willingnessToPay.zero,1);assert.equal(report.excluded.featureInvalid,0);
-      assert.equal((await request('/feedback/features','POST',answer(),cookie)).status,200);
+      seedHistory(a.body.user.id,{features:answer()});
       const unknown=summarizeSurvey((await request('/export/survey-testers','GET',null,admin.cookie)).body,(await request('/export/survey-features','GET',null,admin.cookie)).body);
       assert.equal(unknown.willingnessToPay.n,0);assert.equal(unknown.willingnessToPay.unknown,1);
     });
     let tour,task;
-    await t.test('tasks support edit/delete with optimistic versions while old PATCH stays compatible',async()=>{
+    await t.test('all task mutations require optimistic versions and reject stale or unversioned status changes',async()=>{
       const created=await request('/tours','POST',{...qaTour,title:'QA task tour'},cookie);assert.equal(created.status,201);tour=(await workspace()).tours.find(t=>t.id===created.body.id);
       const body={tour_id:tour.id,title:'First task',assignee:'QA assignee',due:'2026-12-01',priority:'normal'};
       const made=await request('/tasks','POST',body,cookie);assert.equal(made.status,201);task=(await workspace()).tasks.find(t=>t.id===made.body.id);assert.equal(task.version,1);
@@ -101,11 +97,14 @@ test('polished API: additive data, six-feature research, guarded task CRUD and p
       assert.equal((await request('/tasks/'+task.id,'DELETE',{version:current.version},b.cookie)).status,409);
       assert.equal((await request('/tasks/'+task.id,'DELETE',{version:current.version},reviewer.cookie)).status,403);
       assert.equal((await request('/tasks/'+task.id,'PATCH',{status:'doing',version:current.version},cookie)).status,200);
-      assert.equal((await request('/tasks/'+task.id,'PATCH',{status:'done'},cookie)).status,200,'Legacy clients may omit version');
+      assert.equal((await request('/tasks/'+task.id,'PATCH',{status:'done'},cookie)).status,400,'Missing version must not bypass overwrite protection');
+      current=(await workspace()).tasks.find(t=>t.id===task.id);assert.equal(current.status,'doing');assert.equal(current.version,3);
+      assert.equal((await request('/tasks/'+task.id,'PATCH',{status:'done',version:current.version},cookie)).status,200);
+      assert.equal((await request('/tasks/'+task.id,'PATCH',{status:'todo',version:current.version},cookie)).status,409,'A stale click must not undo the newer status');
       current=(await workspace()).tasks.find(t=>t.id===task.id);assert.equal(current.version,4);
       assert.equal((await request('/tours/'+tour.id,'PUT',{...tour,published:true,reserved:tour.reserved-1},cookie)).status,200);
       assert.equal((await request('/events','POST',{action:'portal_viewed'},cookie)).status,200);
-      assert.equal((await request('/feedback/features','POST',answer(),cookie)).status,200);
+      seedHistory(a.body.user.id,{features:answer()});
       const dedup=(await request('/research','GET',null,admin.cookie)).body;
       assert.equal(dedup.uniqueResponseCount,1);assert.equal(dedup.readyToReview,1,'New feature response can qualify without double-counting its legacy response');
       assert.equal(dedup.feedback[0].has_test_flow,0,'Actions after a legacy response must not qualify that earlier response');
@@ -141,7 +140,7 @@ test('polished API: additive data, six-feature research, guarded task CRUD and p
       assert.equal((await request('/pooling/history/export')).status,401);
     });
     await t.test('account deletion cascades the additional survey data',async()=>{
-      assert.equal((await request('/feedback','POST',{portal:3,operations:4,sync:3,ease:4,intent:'maybe',price:0,liked:'Legacy fallback',disliked:''},b.cookie)).status,200);
+      seedHistory(b.body.user.id,{legacy:{portal:3,operations:4,sync:3,ease:4,intent:'maybe',price:0,liked:'Legacy fallback',disliked:''}});
       const both=(await request('/research','GET',null,admin.cookie)).body;assert.equal(both.uniqueResponseCount,2,'Legacy-only participant is retained alongside new survey data');
       assert.equal(parseCsv((await request('/export/survey-testers','GET',null,admin.cookie)).body).rows.length,1,'Legacy answers are never synthesized into six-feature rows');
       assert.equal((await request('/account','DELETE',null,cookie)).status,200);

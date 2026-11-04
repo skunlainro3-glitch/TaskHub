@@ -1,10 +1,14 @@
 import http from "node:http";
 import { createAccounts, deleteAccount, canManageTeam, workspacePermission } from './accounts.mjs';
 import { loadDemoWorkspace } from './demo.mjs';
-import { startFeatureTrial, finishFeatureTrial, ownFeatureTrials, trialResearchSummary, trialExportRows, trialFields } from './trials.mjs';
+import { workspaceAccess, requireCapability } from '../shared/access.mjs';
+import { loadPlanning, savePlanning } from './planning.mjs';
+import { loadAnalytics } from './analytics.mjs';
+import { analyticsRows } from '../shared/analytics.mjs';
+import { tableXlsx, xlsxMime } from '../shared/xlsx.mjs';
 import { referenceCatalog } from "./catalog.mjs";
 import { insertPublicInquiry, importTours, createPooling, updatePooling, recordInteractions, operationError } from "./operations.mjs";
-import { parseFeatureFeedback, saveFeatureFeedback, surveyExportRows, testerFields, featureFields } from "./feature-feedback.mjs";
+import { parseFeatureFeedback, surveyExportRows, testerFields, featureFields } from "./feature-feedback.mjs";
 import { isIP } from "node:net";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { resolve, extname } from "node:path";
@@ -177,6 +181,10 @@ const log = async (user, action, entity = "") => {
       .run(randomUUID(), user.id, action, entity, now());
 };
 async function userFor(req) {
+  if (!Object.hasOwn(req,'userLookup')) req.userLookup=lookupUser(req);
+  return req.userLookup;
+}
+async function lookupUser(req) {
   const raw = (req.headers.cookie || "")
     .split(";")
     .map((s) => s.trim())
@@ -186,7 +194,7 @@ async function userFor(req) {
   return (
     (await db
       .prepare(
-        "SELECT u.*,m.permission AS staff_permission,p.verified_at FROM users u JOIN sessions s ON s.user_id=u.id LEFT JOIN workspace_members m ON m.user_id=u.id LEFT JOIN account_profiles p ON p.user_id=u.id WHERE s.token=? AND s.expires>?",
+        "SELECT u.*,m.permission AS staff_permission,m.department FROM users u JOIN sessions s ON s.user_id=u.id LEFT JOIN workspace_members m ON m.user_id=u.id WHERE s.token=? AND s.expires>?",
       )
       .get(createHash("sha256").update(raw).digest("hex"), Date.now())) || null
   );
@@ -221,8 +229,8 @@ function safeUser(u) {
     email: u.email,
     workspace: u.workspace,
     role: u.role,
-    email_verified: Boolean(u.verified_at),
     workspace_permission: workspacePermission(u),
+    department: u.department || null,
     can_manage_team: canManageTeam(u),
     can_delete_workspace: !['admin','reviewer','staff'].includes(u.role),
   };
@@ -273,6 +281,11 @@ function download(res, rows, name, fields) {
   });
   res.end(csv(rows, fields));
 }
+function downloadXlsx(res, table, name) {
+  const bytes=tableXlsx(table);
+  res.writeHead(200,{'Content-Type':xlsxMime,'Content-Disposition':`attachment; filename="${name}.xlsx"`,'Cache-Control':'no-store'});
+  res.end(bytes);
+}
 const todayVietnam = () => new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit' }).format(new Date());
 function tourInput(b) {
   return [
@@ -318,13 +331,15 @@ export const server = http.createServer(async (req, res) => {
     }
     if (p === "/api/health") {
       await db.prepare("SELECT 1").get();
-      return json(res, { ok: true, version: "0.5.1" });
+      return json(res, { ok: true, version: "0.7.3" });
     }
+    // The in-app feedback forms are retired; historical rows remain exportable.
+    if (['/api/feedback','/api/feedback/features'].includes(p)) fail('Không tìm thấy API.',404);
     // Read-only members cannot bypass the interface by calling a write API.
     // Personal account actions do not mutate shared business data.
     if (p.startsWith('/api/') && method !== 'GET') {
       const actor = await userFor(req);
-      const personal = ['/api/login','/api/logout','/api/register','/api/account','/api/account/verification/request','/api/account/verification/confirm','/api/password/forgot','/api/password/reset','/api/events','/api/interactions'];
+      const personal = ['/api/login','/api/logout','/api/register','/api/account','/api/password/forgot','/api/password/reset','/api/events','/api/interactions'];
       if (actor?.role === 'staff' && workspacePermission(actor) === 'viewer' && !personal.includes(p))
         fail('Nhân viên chỉ xem không được chỉnh sửa dữ liệu.', 403);
     }
@@ -341,29 +356,26 @@ export const server = http.createServer(async (req, res) => {
       const u = await userFor(req);
       return json(res, { user: u ? safeUser(u) : null });
     }
+    if (method!=='GET') {
+      const actor=await userFor(req);
+      if(actor) {
+        if(/^\/api\/tours(?:\/|$)/.test(p)) requireCapability(actor,'canEditTours');
+        if(/^\/api\/tasks(?:\/|$)/.test(p)) requireCapability(actor,'canEditTasks');
+        if(/^\/api\/inquiries\//.test(p)) requireCapability(actor,'canEditInquiries');
+      }
+    }
+    if (p==='/api/planning' && method==='GET') return json(res,await loadPlanning(db,await required(req)));
+    if (['/api/analytics','/api/analytics/export.xlsx'].includes(p) && method==='GET') {
+      const u=await required(req);
+      const report=await loadAnalytics(db,u,{from:url.searchParams.get('from')??undefined,to:url.searchParams.get('to')??undefined});
+      if(p==='/api/analytics')return json(res,report);
+      const rows=analyticsRows(report);
+      return downloadXlsx(res,{name:'Bao cao van hanh',headers:['Phần','Chỉ số','Giá trị','Đơn vị'],rows:rows.map(r=>[r.section,r.metric,r.value,r.unit]),widths:[28,44,28,22]},'taskhub-report');
+    }
+    if (p==='/api/planning' && method==='PUT') return json(res,await savePlanning(db,await required(req),await body(req)));
     if (p === '/api/account/security' && method === 'GET') return json(res, await accounts.security(await required(req)));
     if (p === '/api/demo/load' && method === 'POST') {
       limited(req,'demo-load',5); return json(res,await loadDemoWorkspace(db,await required(req)));
-    }
-    if (p === '/api/trials' && method === 'GET') return json(res,await ownFeatureTrials(db,await required(req)));
-    if (p === '/api/trials/summary' && method === 'GET') {
-      await adminOnly(req); return json(res,await trialResearchSummary(db));
-    }
-    if (p === '/api/trials' && method === 'POST') {
-      limited(req,'trial-start',30); return json(res,await startFeatureTrial(db,await required(req),await body(req)),201);
-    }
-    const trialMatch=p.match(/^\/api\/trials\/([^/]+)$/);
-    if (trialMatch && method === 'PATCH') {
-      limited(req,'trial-finish',30); return json(res,await finishFeatureTrial(db,await required(req),trialMatch[1],await body(req)));
-    }
-    if (p === '/api/export/trials' && method === 'GET') {
-      await adminOnly(req); return download(res,await trialExportRows(db),'taskhub-trials',trialFields);
-    }
-    if (p === '/api/account/verification/request' && method === 'POST') {
-      limited(req,'verify-request',5); return json(res,await accounts.requestVerification(await required(req)));
-    }
-    if (p === '/api/account/verification/confirm' && method === 'POST') {
-      limited(req,'verify-confirm',10); return json(res,await accounts.confirmVerification((await body(req)).token));
     }
     if (p === '/api/password/forgot' && method === 'POST') {
       limited(req,'password-forgot',5); return json(res,await accounts.forgot((await body(req)).email));
@@ -439,7 +451,7 @@ export const server = http.createServer(async (req, res) => {
       limited(req, "login", 30);
       const b = await body(req);
       const u = await db
-        .prepare("SELECT u.*,m.permission AS staff_permission,p.verified_at FROM users u LEFT JOIN workspace_members m ON m.user_id=u.id LEFT JOIN account_profiles p ON p.user_id=u.id WHERE u.email=?")
+        .prepare("SELECT u.*,m.permission AS staff_permission,m.department FROM users u LEFT JOIN workspace_members m ON m.user_id=u.id WHERE u.email=?")
         .get(email(b.email));
       const password = text(b.password, "mật khẩu", 128);
       if (!u || !verify(password, u.password))
@@ -475,7 +487,6 @@ export const server = http.createServer(async (req, res) => {
       return json(res, {
         agency: ws.id === "agency" ? "TaskHub" : ws.name,
         tours: await publicTours(db, ws.id),
-        catalog: ws.id === "agency" ? referenceCatalog : null,
         updated: now(),
       });
     }
@@ -511,9 +522,17 @@ export const server = http.createServer(async (req, res) => {
         201,
       );
     }
+    // Reference content is loaded only when an operator opens the picker.
+    // Keeping it out of polling avoids sending the same static data every time.
+    if (p === "/api/catalog" && method === "GET") {
+      const u = await required(req);
+      requireCapability(u, 'canEditTours');
+      return json(res, referenceCatalog);
+    }
     if (p === "/api/workspace" && method === "GET") {
       const u = await required(req);
-      const [tasks, tours, inquiries, activity, actionRows, feedback, pooling, featureFeedback, poolingHistory] =
+      const access = workspaceAccess(u);
+      const [tasks, tours, inquiries, activity, pooling, poolingHistory] =
         await Promise.all([
           db
             .prepare(
@@ -523,37 +542,29 @@ export const server = http.createServer(async (req, res) => {
           db
             .prepare("SELECT * FROM tours WHERE workspace=? ORDER BY departure")
             .all(u.workspace),
-          db
+          access.canReadInquiries ? db
             .prepare(
               "SELECT i.*,t.title AS tour_title FROM inquiries i JOIN tours t ON t.id=i.tour_id WHERE i.workspace=? ORDER BY i.created DESC",
             )
-            .all(u.workspace),
+            .all(u.workspace) : [],
           db
             .prepare(
               "SELECT action,entity,created FROM events WHERE user_id=? ORDER BY created DESC LIMIT 8",
             )
             .all(u.id),
-          db
-            .prepare("SELECT DISTINCT action FROM events WHERE user_id=?")
-            .all(u.id),
-          db.prepare("SELECT * FROM feedback WHERE user_id=?").get(u.id),
-          db.prepare("SELECT p.*,t.title AS tour_title,t.departure AS departure FROM pooling p JOIN tours t ON t.id=p.tour_id WHERE p.workspace=? ORDER BY p.created DESC").all(u.workspace),
-          db.prepare('SELECT * FROM feature_feedback WHERE user_id=?').get(u.id),
-          db.prepare('SELECT a.*,u.name AS actor_name FROM pooling_audit a LEFT JOIN users u ON u.id=a.actor_id WHERE a.workspace=? ORDER BY a.created DESC,a.id DESC LIMIT 200').all(u.workspace),
+          access.canReadPooling ? db.prepare("SELECT p.*,t.title AS tour_title,t.departure AS departure FROM pooling p JOIN tours t ON t.id=p.tour_id WHERE p.workspace=? ORDER BY p.created DESC").all(u.workspace) : [],
+          access.canReadPooling ? db.prepare('SELECT a.*,u.name AS actor_name FROM pooling_audit a LEFT JOIN users u ON u.id=a.actor_id WHERE a.workspace=? ORDER BY a.created DESC,a.id DESC LIMIT 200').all(u.workspace) : [],
         ]);
-      const completedActions = actionRows.map((e) => e.action);
       return json(res, {
         tours,
         workspace_permission: workspacePermission(u),
+        department:u.department || null,
+        access,
         tasks,
-        inquiries,
+        inquiries:access.canReadInquiries?inquiries:[],
         activity,
-        completedActions,
-        catalog: referenceCatalog,
-        pooling,
-        feedback: feedback || null,
-        featureFeedback: parseFeatureFeedback(featureFeedback),
-        poolingHistory,
+        pooling:access.canReadPooling?pooling:[],
+        poolingHistory:access.canReadPooling?poolingHistory:[],
       });
     }
     if (p === "/api/tours/import" && method === "POST") {
@@ -564,24 +575,30 @@ export const server = http.createServer(async (req, res) => {
       const u=await required(req); limited(req,'interactions',120);
       return json(res,await recordInteractions(db,u,await body(req)));
     }
-    if (p === "/api/pooling/export" && method === "GET") {
+    if (['/api/pooling/export','/api/pooling/export.xlsx'].includes(p) && method === "GET") {
       const u=await required(req);
-      const rows=await db.prepare("SELECT p.partner,t.title AS tour,t.departure,p.seats,p.unit_price,p.seats*p.unit_price AS total,p.paid,p.seats*p.unit_price-p.paid AS balance,p.status,p.note,p.updated FROM pooling p JOIN tours t ON t.id=p.tour_id WHERE p.workspace=? ORDER BY p.created").all(u.workspace);
+      requireCapability(u,'canReadPooling');
+      const rows=await db.prepare("SELECT p.partner,t.title AS tour,t.departure,p.seats,p.unit_price,p.seats*p.unit_price AS total,p.paid,CASE WHEN p.status='confirmed' THEN p.seats*p.unit_price-p.paid ELSE NULL END AS balance,p.status,p.note,p.updated FROM pooling p JOIN tours t ON t.id=p.tour_id WHERE p.workspace=? ORDER BY p.created").all(u.workspace);
+      if(p.endsWith('.xlsx'))return downloadXlsx(res,{name:'Cong no B2B',headers:['Đối tác','Tour','Khởi hành','Khách','Giá / khách (VND)','Thỏa thuận (VND)','Đã thu (VND)','Còn thu (VND)','Trạng thái','Ghi chú','Cập nhật'],rows:rows.map(r=>[r.partner,r.tour,r.departure,r.seats,r.unit_price,r.total,r.paid,r.status==='confirmed'?r.balance:'',r.status,r.note,r.updated]),widths:[26,38,16,10,23,23,23,23,18,50,26]},'taskhub-pooling');
       return download(res,rows,'taskhub-pooling');
     }
     if (p === '/api/pooling/history/export' && method === 'GET') {
       const u=await required(req);
+      requireCapability(u,'canReadPooling');
       const rows=await db.prepare('SELECT a.id,a.pooling_id,p.partner,t.title AS tour,u.name AS actor_name,a.action,a.paid_before,a.paid_after,a.status_before,a.status_after,a.created FROM pooling_audit a JOIN pooling p ON p.id=a.pooling_id JOIN tours t ON t.id=p.tour_id LEFT JOIN users u ON u.id=a.actor_id WHERE a.workspace=? ORDER BY a.created,a.id').all(u.workspace);
       return download(res,rows,'taskhub-pooling-history',['id','pooling_id','partner','tour','actor_name','action','paid_before','paid_after','status_before','status_after','created']);
     }
     if (p === "/api/pooling" && method === "POST") {
       const u=await required(req);
+      requireCapability(u,'canManageDeals');
       return json(res,await createPooling(db,u,await body(req)),201);
     }
     const poolMatch=p.match(/^\/api\/pooling\/([^/]+)$/);
     if(poolMatch && method==='PATCH') {
       const u=await required(req);
-      return json(res,await updatePooling(db,u,poolMatch[1],await body(req)));
+      const input=await body(req);
+      requireCapability(u,input.action==='payment'?'canRecordReceipts':'canManageDeals');
+      return json(res,await updatePooling(db,u,poolMatch[1],input));
     }
     if (p === "/api/events" && method === "POST") {
       const u = await required(req),
@@ -676,11 +693,11 @@ export const server = http.createServer(async (req, res) => {
       const u = await required(req),
         b = await body(req);
       const status = choice(b.status, ["todo", "doing", "done"], "trạng thái");
-      if (b.version !== undefined) integer(b.version, 'phiên bản', 1, 1000000000);
-      const sql='UPDATE tasks SET status=?,version=version+1 WHERE id=? AND workspace=?'+(b.version === undefined ? '' : ' AND version=?');
-      const args=[status,taskMatch[1],u.workspace,...(b.version === undefined ? [] : [b.version])];
+      integer(b.version, 'phiên bản', 1, 1000000000);
+      const sql='UPDATE tasks SET status=?,version=version+1 WHERE id=? AND workspace=? AND version=?';
+      const args=[status,taskMatch[1],u.workspace,b.version];
       const result=await db.batch([[sql,args],...(['admin','reviewer','staff'].includes(u.role)?[]:[['INSERT INTO events SELECT ?,?,?,?,? WHERE changes()=1',[randomUUID(),u.id,'task_status_changed',status,now()]]])]);
-      if (!result[0].changes) fail(b.version === undefined ? 'Không tìm thấy công việc.' : 'Công việc đã thay đổi hoặc không còn tồn tại. Tải lại trước khi sửa.', b.version === undefined ? 404 : 409);
+      if (!result[0].changes) fail('Công việc đã thay đổi hoặc không còn tồn tại. Tải lại trước khi sửa.', 409);
       return json(res, { ok: true });
     }
     if (taskMatch && method === 'PUT') {
@@ -708,36 +725,17 @@ export const server = http.createServer(async (req, res) => {
         ["new", "contacted", "closed"],
         "trạng thái",
       );
+      integer(b.version, "phiên bản", 1, 1000000000);
+      const current = await db.prepare("SELECT version FROM inquiries WHERE id=? AND workspace=?").get(leadMatch[1], u.workspace);
+      if (!current) fail("Không tìm thấy yêu cầu.", 404);
+      if (current.version !== b.version)
+        fail("Yêu cầu đã được người khác cập nhật. Tải lại trước khi đổi trạng thái.", 409);
+      // Recheck in the write itself: another operator can save after this read.
       const result = await db
-        .prepare("UPDATE inquiries SET status=? WHERE id=? AND workspace=?")
-        .run(status, leadMatch[1], u.workspace);
-      if (!result.changes) fail("Không tìm thấy yêu cầu.", 404);
-      return json(res, { ok: true });
-    }
-    if (p === '/api/feedback/features' && method === 'POST') {
-      const u=await required(req); limited(req,'feedback-features',30);
-      return json(res,await saveFeatureFeedback(db,u,await body(req)));
-    }
-    if (p === "/api/feedback" && method === "POST") {
-      const u = await required(req),
-        b = await body(req);
-      if (['admin','reviewer','staff'].includes(u.role))
-        fail("Quản trị không phải người tham gia khảo sát.");
-      const values = ["portal", "operations", "sync", "ease"].map((k) =>
-        integer(b[k], k, 1, 5),
-      );
-      const intent = choice(b.intent, ["yes", "maybe", "no"], "ý định");
-      const price = integer(b.price, "giá", 0, 100000000);
-      const liked = text(b.liked || "", "điểm thích", 1500, true),
-        disliked = text(b.disliked || "", "điểm cần sửa", 1500, true);
-      await transaction(db, async () => {
-        await db
-          .prepare(
-            "INSERT INTO feedback VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET portal=excluded.portal,operations=excluded.operations,sync=excluded.sync,ease=excluded.ease,intent=excluded.intent,price=excluded.price,liked=excluded.liked,disliked=excluded.disliked,created=excluded.created",
-          )
-          .run(u.id, ...values, intent, price, liked, disliked, now());
-        await log(u, "feedback_submitted");
-      });
+        .prepare("UPDATE inquiries SET status=?,version=version+1 WHERE id=? AND workspace=? AND version=?")
+        .run(status, leadMatch[1], u.workspace, b.version);
+      if (!result.changes)
+        fail("Yêu cầu đã thay đổi hoặc không còn tồn tại. Tải lại trước khi đổi trạng thái.", 409);
       return json(res, { ok: true });
     }
     if (p === "/api/research" && method === "GET") {
@@ -769,7 +767,6 @@ export const server = http.createServer(async (req, res) => {
         featureFeedback,
         uniqueResponseCount: responseIds.size,
         readyToReview: readyIds.size,
-        trials: await trialResearchSummary(db),
         events: (await db.prepare("SELECT COUNT(*) AS count FROM events e JOIN users u ON u.id=e.user_id WHERE u.role NOT IN ('admin','reviewer','staff')").get())
           .count,
       });
@@ -832,6 +829,10 @@ export const server = http.createServer(async (req, res) => {
       ".css": "text/css; charset=utf-8",
       ".svg": "image/svg+xml",
       ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".webp": "image/webp",
+      ".ico": "image/x-icon",
     };
     res.writeHead(200, {
       "Content-Type": types[extname(file)] || "application/octet-stream",

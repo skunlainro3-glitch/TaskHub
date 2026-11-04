@@ -93,6 +93,7 @@ async function createInvite(email) {
 
 try {
   await page.goto(base);
+  await page.getByRole("button", { name: "Dành cho điều hành", exact: true }).click();
   await page
     .getByRole("button", { name: "Dùng thử TaskHub", exact: true })
     .click();
@@ -116,12 +117,15 @@ try {
   registered = true;
   await page.getByRole("heading", { name: "Tổng quan", exact: true }).waitFor();
   assert.equal((await workspace(ownerContext)).tours.length, 0);
+  assert.equal(await page.locator('.welcome-banner,.workspace-switch,.app-main > .workspace-notice').count(),0);
+  assert.equal(await page.getByRole('button',{name:'Phản hồi MVP',exact:true}).count(),0);
+  assert.equal(await page.locator('.feature-feedback-form').count(),0);
   await page
     .getByRole("button", { name: "Dùng dữ liệu mẫu", exact: true })
     .waitFor();
   await noOverflow(
     page,
-    "Empty dashboard and trial controls",
+    "Empty dashboard without survey or decorative hero",
     "empty-dashboard",
   );
   page.once("dialog", (dialog) => dialog.accept());
@@ -154,61 +158,32 @@ try {
   assert.ok(data.tours.every((tour) => tour.title.includes("[Demo]")));
   await noOverflow(
     page,
-    "Populated dashboard and trial controls",
+    "Populated dashboard without survey or decorative hero",
     "sample-dashboard",
   );
   console.log(
     "v0.5 sample UI passed: optional isolated 3/3/3 scenario, correct seats and simulated payments; 320/390px fit",
   );
 
-  await page
-    .getByLabel("Chức năng muốn thử", { exact: true })
-    .selectOption("pooling");
-  const start = responseFor(page, "/trials", "POST");
-  await page.getByRole("button", { name: "Bắt đầu đo", exact: true }).click();
-  assert.equal((await start).status(), 201);
-  await page.getByText("Đang thử: Ghép tour B2B", { exact: true }).waitFor();
-  await page.getByRole("button", { name: "Mở chức năng", exact: true }).click();
-  await page
-    .getByRole("heading", { name: "Ghép tour B2B", exact: true })
-    .waitFor();
-  assert.equal(await page.locator(".pool-guide").count(), 1);
-  await noOverflow(page, "Simulated pooling ledger", "pooling");
-  await nav(page, "Tổng quan");
-  const trialResponse = await ownerContext.request.get(base + "/api/trials");
-  const trial = (await trialResponse.json()).active;
-  assert.ok(trial && trial.feature === "pooling");
-  const finish = responseFor(page, "/trials/" + trial.id, "PATCH");
-  await page
-    .getByRole("button", { name: "Tự hoàn thành", exact: true })
-    .click();
-  assert.equal((await finish).status(), 200);
-  await page.getByRole("button", { name: "Bắt đầu đo", exact: true }).waitFor();
-  await page.getByText("Lịch sử bài thử của bạn", { exact: true }).click();
-  await page
-    .locator(".trial-history")
-    .getByText("Ghép tour B2B", { exact: true })
-    .waitFor();
-  const trialData = await (
-    await ownerContext.request.get(base + "/api/trials")
-  ).json();
-  assert.equal(trialData.active, null);
-  assert.equal(trialData.trials.length, 1);
-  assert.equal(trialData.trials[0].result, "completed");
-  assert.ok(trialData.trials[0].duration_ms >= 0);
-  console.log(
-    "v0.5 trial UI passed: actual explicit start, feature navigation, server finish and private history",
-  );
+  assert.equal(await page.getByRole('heading',{name:'Đo một bài thử thực tế',exact:true}).count(),0);
+  assert.equal(await page.getByRole('button',{name:'Bắt đầu đo',exact:true}).count(),0);
+  for(const [path,method] of [['/trials','GET'],['/trials','POST'],['/trials/removed','PATCH'],['/trials/summary','GET'],['/export/trials','GET']]) {
+    const removed=await ownerContext.request.fetch(base+'/api'+path,{method,headers:{'X-TaskHub':'1'},...(['POST','PATCH'].includes(method)?{data:{}}:{})});
+    assert.equal(removed.status(),404,'Removed API must not be available: '+path);
+  }
+  await nav(page,'Ghép tour B2B');
+  assert.equal(await page.locator('.pool-guide').count(),1);
+  await noOverflow(page,'Simulated pooling ledger','pooling');
+  await nav(page,'Tổng quan');
+  console.log('Removed timed-trial UI/API; demo, onboarding and B2B remain usable.');
 
   await nav(page, "Tài khoản & nhóm");
-  await page
-    .getByText("Hệ thống chưa kết nối dịch vụ gửi email.", { exact: false })
-    .waitFor();
-  assert.ok(
-    await page
-      .getByRole("button", { name: "Gửi email xác minh", exact: true })
-      .isDisabled(),
-  );
+  const securityCard = page.locator('.account-panel').filter({ has: page.getByRole('heading', { name: 'Tài khoản & bảo mật', exact: true }) });
+  await securityCard.getByText('Quyền: Chủ không gian.', { exact: true }).waitFor();
+  assert.equal(await securityCard.locator('p').count(), 2);
+  assert.equal(await securityCard.locator('button,.badge,.muted').count(), 0);
+  assert.equal(await securityCard.locator('strong').textContent(), 'QA tự động v0.5 — không phải tester thật');
+  assert.ok((await securityCard.textContent()).includes(ownerEmail));
   await noOverflow(page, "Account security and invitation form", "account");
   const inviteLink = await createInvite(staffEmail);
   await staff.goto(inviteLink);
@@ -299,9 +274,9 @@ try {
   );
 
   await staff
-    .getByRole("button", { name: "Hướng dẫn & hỗ trợ", exact: true })
+    .getByRole("button", { name: "Tài khoản & nhóm", exact: true })
     .click();
-  await staff.getByText("Dữ liệu và quyền riêng tư", { exact: true }).click();
+  await staff.getByText("Xóa tài khoản", { exact: true }).click();
   staff.once("dialog", (dialog) => dialog.accept());
   const removeStaff = responseFor(staff, "/account", "DELETE");
   await staff
@@ -312,7 +287,7 @@ try {
     .click();
   assert.equal((await removeStaff).status(), 200);
   await staff
-    .getByRole("button", { name: "Dùng thử TaskHub", exact: true })
+    .getByRole("button", { name: "Dành cho điều hành", exact: true })
     .waitFor();
   assert.equal(
     (await workspace(ownerContext)).tours.length,
@@ -358,6 +333,7 @@ try {
   );
 
   await staff.goto(base);
+  await staff.getByRole("button", { name: "Dành cho điều hành", exact: true }).click();
   await staff.getByRole("button", { name: "Đăng nhập", exact: true }).click();
   await staff
     .getByRole("button", { name: "Quên mật khẩu?", exact: true })
@@ -393,22 +369,16 @@ try {
     .getByText("Liên kết không hợp lệ hoặc đã hết hạn.", { exact: true })
     .waitFor();
   await staff.goto(base + "/?verify=" + "2".repeat(64));
-  await staff
-    .getByRole("dialog", { name: "Xác minh email", exact: true })
-    .waitFor();
   await staff.waitForFunction(() => location.search === "");
-  const verify = responseFor(staff, "/account/verification/confirm", "POST");
-  await staff
-    .getByRole("button", { name: "Xác nhận email", exact: true })
-    .click();
-  assert.equal((await verify).status(), 400);
-  await staff
-    .getByRole("alert")
-    .getByText("Liên kết không hợp lệ hoặc đã hết hạn.", { exact: true })
-    .waitFor();
+  await staff.getByRole('heading', { name: 'Cổng thông tin tour', exact: true }).waitFor();
+  assert.equal(await staff.getByRole('dialog').count(), 0);
+  for (const path of ['/account/verification/request','/account/verification/confirm']) {
+    const retired = await staffContext.request.post(base + '/api' + path, { headers: { 'X-TaskHub': '1' }, data: { token: '2'.repeat(64) } });
+    assert.equal(retired.status(), 404);
+  }
   assert.deepEqual(errors, []);
   console.log(
-    "V0.5 UI PASS: optional samples, explicit trials, invitations/permissions, safe self-deletion, recovery honesty, invalid links and mobile no-overflow; no browser errors. Disposable QA accounts removed.",
+    "V0.5 UI PASS: optional samples, removed features, invitations/permissions, safe self-deletion, recovery honesty, invalid links and mobile no-overflow; no browser errors. Disposable QA accounts removed.",
   );
 } catch (error) {
   // Avoid capturing live invite links/tokens in failure artifacts.

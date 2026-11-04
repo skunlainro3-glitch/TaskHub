@@ -53,6 +53,8 @@ export function TourMedia({
       {media ? (
         <img
           src={media.image}
+          srcSet={media.srcSet}
+          sizes={media.srcSet ? large ? '(max-width: 650px) 90vw, 850px' : '(max-width: 650px) 90vw, (max-width: 1100px) 44vw, 380px' : undefined}
           alt={`${media.title} — ảnh minh họa điểm đến`}
           width={media.width || 960}
           height={media.height || 600}
@@ -106,7 +108,7 @@ export function TourImageCredit({ tour = {} }) {
       <a href={media.licenseUrl} target="_blank" rel="noopener noreferrer">
         {media.license}
       </a>
-      . Dùng bản thu nhỏ; khung hiển thị có thể cắt ảnh. Không phải ảnh đoàn
+      . Dùng bản thu nhỏ/WebP; khung hiển thị có thể cắt ảnh. Không phải ảnh đoàn
       khách của TaskHub.
     </p>
   );

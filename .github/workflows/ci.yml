@@ -2,7 +2,7 @@ name: TaskHub CI
 on:
   workflow_dispatch:
   push:
-    branches: [dev, build]
+    branches: [dev, main]
   pull_request:
     branches: [dev]
 permissions:
@@ -40,10 +40,14 @@ jobs:
           done
           TEST_URL=http://127.0.0.1:3001 npm run test:ui
           TEST_URL=http://127.0.0.1:3001 node tests/v05-ui.mjs
+          TEST_URL=http://127.0.0.1:3001 node tests/cp4-ui.mjs
+          TEST_URL=http://127.0.0.1:3001 node tests/cp4-delivery-ui.mjs
           TEST_URL=http://127.0.0.1:3001 node tests/ux051-ui.mjs
+          TEST_URL=http://127.0.0.1:3001 node tests/performance-ui.mjs
+          TEST_URL=http://127.0.0.1:3001 node tests/stability-ui.mjs
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: browser-screenshots
-          path: work/*.png
+          path: work/**/*.png
           retention-days: 3

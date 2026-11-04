@@ -1,5 +1,10 @@
 // Photos are illustrative destination views, never evidence of a sold tour.
 // Keep the original photo license separate from the application's code license.
+import {tourImageVariants, unavailableTourImageSources} from './tour-image-variants.mjs';
+function responsivePhoto(photo,failed) {
+  const variant=tourImageVariants[photo.image];
+  return variant&&!failed.includes(variant.image)?{...photo,...variant}:photo;
+}
 export const TOUR_PHOTOS = [
   {
     key: "hoi-an",
@@ -79,14 +84,14 @@ export function destinationPhoto(tour = {}) {
 
 export function resolveTourMedia(tour = {}, failedSources = []) {
   const provided = safeImageUrl(tour.image || tour.sourceImage);
-  if (provided && !failedSources.includes(provided)) {
-    return {
+  if (provided && !unavailableTourImageSources.includes(provided) && !failedSources.includes(provided)) {
+    return responsivePhoto({
       image: provided,
       title: tour.title || tour.destination || "Điểm đến",
       sourceUrl: safeImageUrl(tour.sourceUrl),
       externalSource: true,
-    };
+    },failedSources);
   }
   const photo = destinationPhoto(tour);
-  return photo && !failedSources.includes(photo.image) ? photo : null;
+  return photo && !failedSources.includes(photo.image) ? responsivePhoto(photo,failedSources) : null;
 }
