@@ -32,7 +32,7 @@ work/research/2026-10-17/input/taskhub-interactions.csv
 
 ## Tổng hợp bằng code
 
-Sau khi tải code nhánh build và chạy `npm ci`:
+Sau khi tải code nhánh `main` và chạy `npm ci`:
 
 ```powershell
 npm run research:report -- work/research/2026-10-17/input/taskhub-feedback.csv work/research/2026-10-17/input/taskhub-interactions.csv work/research/2026-10-17/report

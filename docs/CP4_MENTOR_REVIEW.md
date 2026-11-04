@@ -68,4 +68,4 @@ Không thêm thư viện runtime. Các module mới: `shared/access.mjs`, `share
 
 Node 24+, `npm ci`, copy `.env.example` thành `.env` và đặt mật khẩu quản trị riêng; `npm run dev`. Bản build local: `npm run build`, `npm start`. Chi tiết README.
 
-Kiểm tra: `npm test`; `node tests/cp4-ui.mjs` với `TEST_URL` trỏ local/cloud. Tài khoản QA tách biệt và bị xóa sau chạy, không tính là khảo sát. Đẩy `build`, giữ `dev` để duyệt; cập nhật Pages/backend Sites hiện có và giữ dữ liệu public.
+Kiểm tra: `npm test`; `node tests/cp4-ui.mjs` với `TEST_URL` trỏ local/cloud. Tài khoản QA tách biệt và bị xóa sau chạy, không tính là khảo sát. Đẩy `main`, mở PR `main → dev` để chủ repo duyệt; `dev` vẫn là nhánh mặc định được bảo vệ. Cập nhật Pages/backend Sites hiện có và giữ dữ liệu public.

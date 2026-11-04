@@ -1,6 +1,6 @@
 # Hoàn thiện các việc trong file tiến độ của Tuấn
 
-Cập nhật 04/11/2026 theo yêu cầu chủ dự án. Code mới tiếp tục vào `build`; giữ `dev` để anh duyệt. Xem [demo CP4 hiện hành](CP4_DEMO_0_7_3.md) và [VALIDATION](VALIDATION.md) để chọn đúng phiên bản. Tag cố định mã nguồn, không cố định dữ liệu live; không di chuyển tag đã phát hành.
+Cập nhật quy trình nhánh 05/11/2026 theo yêu cầu chủ dự án. Code mới vào `main`, mở PR `main → dev` để chủ repo duyệt; `dev` vẫn là nhánh mặc định được bảo vệ. Xem [demo CP4 hiện hành](CP4_DEMO_0_7_3.md) và [VALIDATION](VALIDATION.md) để chọn đúng phiên bản. Tag cố định mã nguồn, không cố định dữ liệu live; không di chuyển tag đã phát hành.
 
 | Việc trong file cũ | Đã xử lý | Việc thực tế còn phụ thuộc |
 | --- | --- | --- |

@@ -7,7 +7,7 @@ Tài liệu này dành cho thành viên mới nhận code. TaskHub dùng React �
 Cài Git và **Node.js 24 LTS**. Backend dùng `node:sqlite` có sẵn trong Node.js 24; Node.js 18/20 không chạy được bản này.
 
 ```powershell
-git clone --branch build https://github.com/skunlainro3-glitch/TaskHub.git
+git clone --branch main https://github.com/skunlainro3-glitch/TaskHub.git
 cd TaskHub
 npm ci
 Copy-Item -LiteralPath .env.example -Destination .env
@@ -154,4 +154,4 @@ npm run build
 
 Nếu thay giao diện/luồng thao tác, chạy `npm run test:ui` trên môi trường thử theo [README](../README.md). Kiểm tra dữ liệu cũ, thao tác sai, mất mạng và xung đột phiên bản khi có liên quan. Không lấy tài khoản QA hoặc dữ liệu DEMO làm bằng chứng người dùng thật.
 
-Code mới đưa lên `build`, ghi rõ thay đổi và cách kiểm tra. `dev` để chủ repo duyệt. Các con số kiểm thử/deployment nằm ở [VALIDATION.md](VALIDATION.md); bản demo hiện hành, kịch bản và việc Tuấn/Huy còn cần làm trực tiếp nằm ở [CP4_TUAN_HUY_HANDOFF.md](CP4_TUAN_HUY_HANDOFF.md). [CP3_DEMO_RELEASE.md](CP3_DEMO_RELEASE.md) giữ các mốc dự phòng cũ.
+Code mới đưa lên `main`, ghi rõ thay đổi và cách kiểm tra, rồi mở PR `main → dev` để chủ repo duyệt. `dev` vẫn là nhánh mặc định được bảo vệ. Các con số kiểm thử/deployment nằm ở [VALIDATION.md](VALIDATION.md); bản demo hiện hành, kịch bản và việc Tuấn/Huy còn cần làm trực tiếp nằm ở [CP4_TUAN_HUY_HANDOFF.md](CP4_TUAN_HUY_HANDOFF.md). [CP3_DEMO_RELEASE.md](CP3_DEMO_RELEASE.md) giữ các mốc dự phòng cũ.
