@@ -1,10 +1,10 @@
 # Bàn giao Tuấn và Huy — cập nhật 04/11/2026
 
-Bản sửa ổn định **0.7.3** đang được chuẩn bị theo yêu cầu chủ dự án: sửa bố cục Quản lý tour 320px, bảo vệ trạng thái tư vấn khi cùng sửa, bỏ danh mục tham khảo khỏi portal, làm rõ xem chi tiết/báo giá với Sửa tour, nhãn phạm vi xuất và tìm kiếm không dấu. Dùng [Demo CP4 0.7.3](CP4_DEMO_0_7_3.md) cho hướng dẫn hiện hành. Chỉ coi phát hành/kiểm tra hoàn tất theo bằng chứng trong [VALIDATION](VALIDATION.md), không từ nội dung tài liệu này.
+Bản ổn định **0.7.3** đã phát hành ngày 04/11: sửa bố cục Quản lý tour 320px, bảo vệ trạng thái tư vấn khi cùng sửa, bỏ danh mục tham khảo khỏi portal, làm rõ xem chi tiết/báo giá với Sửa tour, nhãn phạm vi xuất và tìm kiếm không dấu. Dùng [Demo CP4 0.7.3](CP4_DEMO_0_7_3.md) cho hướng dẫn hiện hành; commit/tag, CI và kiểm tra production được ghi tại [VALIDATION](VALIDATION.md).
 
 Cập nhật 29/10/2026: gỡ màn Hướng dẫn và các liên kết góp ý GitHub, dòng DÀNH CHO KHÁCH HÀNG, liên kết Nguồn ảnh ở chân trang; ghi công ảnh vẫn nằm trong chi tiết ảnh. Xuất dữ liệu và tự xóa tài khoản chuyển về Tài khoản & nhóm. Form mời nhân viên được căn hàng và kiểm tra responsive.
 
-Đối chiếu [CP4_Timeline_TaskHub](https://docs.google.com/spreadsheets/d/1qvVwdp1zHSm48SIosN7uZZ6Z6SBhFfcXPWIKeYPNG_4/edit?gid=1199392845#gid=1199392845), tab Timeline và Phân công; CP4 Paths Requirements trang 3; rubric MVP Demonstration; phản hồi trong hai file khảo sát người dùng cung cấp. Không chỉnh bảng phân công hoặc phần slide/P&L của thành viên khác.
+Đối chiếu [CP4_Timeline_TaskHub](https://docs.google.com/spreadsheets/d/1qvVwdp1zHSm48SIosN7uZZ6Z6SBhFfcXPWIKeYPNG_4/edit?gid=1199392845#gid=1199392845), tab Timeline hiện tại; CP4 Paths Requirements trang 3; rubric MVP Demonstration; phản hồi trong hai file khảo sát người dùng cung cấp. Các tab khác chỉ thuộc lần đọc trước. Không chỉnh bảng phân công hoặc phần slide/P&L của thành viên khác.
 
 Trạng thái **0.7.2**: gỡ menu/form **Phản hồi MVP** và câu hỏi mức sẵn sàng trả trên web; gỡ banner dài “không gian dùng thử”, thẻ workspace trang trí, khối minh họa Tổng quan và badge “Chưa giữ chỗ tự động”. Tách workspace, phân quyền, log nghiệp vụ/nút/menu có đồng ý và cảnh báo offline/dữ liệu cũ vẫn giữ. Dữ liệu phản hồi đã có và các bản xuất lịch sử chỉ đọc được bảo vệ cho admin/reviewer, không xóa hoặc nhập lại thành phản hồi mới.
 

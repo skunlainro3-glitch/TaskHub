@@ -1,6 +1,6 @@
 # TaskHub — MVP điều hành tour
 
-Chuẩn bị bản sửa ổn định **0.7.3**, cập nhật tài liệu ngày **04/11/2026**. Dùng [hướng dẫn demo CP4](docs/CP4_DEMO_0_7_3.md) cho luồng hiện tại, bản local dự phòng và bảng yêu cầu. Commit/tag/deployment đã kiểm chứng được ghi tại [VALIDATION](docs/VALIDATION.md); không suy ra một bản đã phát hành chỉ từ số phiên bản trong tài liệu. Code mới tiếp tục vào `build`; `dev` giữ để chủ repo duyệt.
+Bản ổn định **0.7.3** đã phát hành ngày **04/11/2026**. Dùng [hướng dẫn demo CP4](docs/CP4_DEMO_0_7_3.md) cho luồng hiện tại, bản local dự phòng và bảng yêu cầu. Commit/tag/deployment đã kiểm chứng được ghi tại [VALIDATION](docs/VALIDATION.md). Code mới ở `build`; `dev` giữ để chủ repo duyệt.
 
 Các đoạn mô tả 0.7.2/0.7.0/0.6.0 bên dưới là lịch sử thay đổi; hướng dẫn thao tác hiện hành nằm trong tài liệu CP4 trên.
 
