@@ -35,7 +35,7 @@ export function SyncStatus({
         ? "Dữ liệu có thể đã cũ"
         : state === "loading"
           ? "Đang tải dữ liệu"
-          : `Cập nhật ${time}`;
+          : `Cập nhật định kỳ · ${time}`;
   const Icon =
     state === "offline" ? WifiOff : state === "stale" ? AlertCircle : RefreshCw;
   return (
@@ -44,8 +44,8 @@ export function SyncStatus({
       role="status"
       title={
         compact
-          ? "Tự kiểm tra lại khi có kết nối."
-          : "Tự kiểm tra khoảng 5 giây sau lần tải trước; không cam kết cập nhật tức thời."
+          ? "Tự động cập nhật định kỳ khi đang mở trang và có kết nối mạng."
+          : "Tự động cập nhật định kỳ, khoảng 5 giây sau lần tải trước khi trang đang hiển thị và có mạng. Thời gian nhận thay đổi phụ thuộc kết nối."
       }
     >
       <Icon size={14} />

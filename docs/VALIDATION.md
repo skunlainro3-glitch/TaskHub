@@ -1,5 +1,9 @@
 # Kiểm chứng TaskHub
 
+## Cách gọi cập nhật định kỳ — 05/11/2026
+
+Chỉ sửa nhãn trạng thái, tooltip và phần giải thích Quy trình vận hành sang **tự động cập nhật định kỳ**; làm rõ mô tả trong CODE_GUIDE/CONTENT_REVIEW. Không đổi scheduler, API, database, chu kỳ tải hoặc cảnh báo mất mạng/dữ liệu cũ; không sửa các trích dẫn lịch sử CP2. Bốn bài polling và build Pages đạt. Các tag demo đã phát hành giữ nguyên; lần chỉnh câu chữ này được ghi theo commit trên `build` và metadata deployment hiện hành.
+
 ## Bản ổn định 0.7.3 — 04/11/2026
 
 - **Bản chốt hiện hành:** runtime `a90491c18a2709857ea97c24436547b7b5a61c17`, tag `cp4-demo-v0.7.3-final` gồm code và tài liệu phát hành. Chỉnh thêm khoảng cách ghi công ảnh để không đè lên mép ảnh; đã xem lại ảnh chụp mobile và chạy lại delivery UI trên public đạt. [CI 41861017750](https://github.com/skunlainro3-glitch/TaskHub/actions/runs/41861017750) đạt đúng runtime cuối. Sites version **23**, source `aec62087c8bb0366f91460a5c9885b10757eb19e`, deployment `appgdep_6aeb53be73d88191bd9b7558957211ba`; Pages `525ce1ae-f6ea-436b-8682-2d326f9f6a2b`. Không đổi API/schema sau bản đầu dưới đây. Đối chiếu checksum nghiệp vụ sau bản chốt vẫn đạt; env/audience/D1 giữ nguyên.

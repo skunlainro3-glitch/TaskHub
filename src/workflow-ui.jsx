@@ -148,11 +148,12 @@ export function Workflow({ data, access, onNav }) {
         </p>
       </section>
       <section className="panel tool-panel">
-        <h3>Đồng bộ và mức vận hành hiện có</h3>
+        <h3>Tự động cập nhật định kỳ</h3>
         <ul>
           <li>
-            Khi tab đang hiển thị và có mạng, kiểm tra lại khoảng 5 giây sau lần
-            tải trước; có độ trễ mạng và máy chủ.
+            Lịch và số chỗ dùng chung, tự động cập nhật định kỳ. Khi trang đang
+            hiển thị và có mạng, hệ thống kiểm tra lại khoảng 5 giây sau lần
+            tải trước; thời gian nhận thay đổi phụ thuộc mạng và máy chủ.
           </li>
           <li>
             Mất mạng hoặc quá 15 giây chưa có dữ liệu mới sẽ đánh dấu thông tin

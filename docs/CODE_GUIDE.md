@@ -73,7 +73,7 @@ Ví dụ sửa tour:
 2. Giao diện gọi `api('/tours/' + id, 'PUT', dữ_liệu)`; hàm HTTP thêm tiền tố `/api`.
 3. `server/index.mjs` kiểm tra đăng nhập, workspace, dữ liệu và phiên bản hiện tại.
 4. Database lưu thay đổi; API trả kết quả. Giao diện tải lại dữ liệu.
-5. Portal của cùng workspace đọc cùng nguồn tour theo chu kỳ 5 giây khi tab đang hiển thị.
+5. Portal của cùng workspace đọc cùng nguồn tour và tự động cập nhật định kỳ, khoảng 5 giây sau khi lượt tải trước hoàn tất khi tab hiển thị và có mạng.
 
 Frontend giúp nhập dễ hơn; backend mới quyết định dữ liệu có được lưu hay không. Không bỏ kiểm tra backend chỉ vì giao diện đã có `required`, giới hạn số hoặc nút bị vô hiệu hóa.
 
