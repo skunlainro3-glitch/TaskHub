@@ -1,11 +1,10 @@
 // Delayed authentication must not block public tours or undo a later sign-in.
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
-import { readFileSync, mkdirSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { qaTour } from './fixtures.mjs';
 
 const base = process.env.TEST_URL || 'http://127.0.0.1:3015';
-const catalog = JSON.parse(readFileSync('catalog/enviet-tours.json', 'utf8'));
 const browser = await chromium.launch({
   headless: true,
   ...(process.platform === 'win32' ? { channel: 'msedge' } : {}),
@@ -39,7 +38,7 @@ try {
     await route.fulfill({ status: 503, json: { message: 'Phiên phản hồi chậm (kiểm thử).' } });
   });
   await page.route('**/api/public/agency', route => route.fulfill({ json: {
-    agency: 'QA performance', tours: [{...qaTour, id: 'qa-public-tour'}], catalog,
+    agency: 'QA performance', tours: [{...qaTour, id: 'qa-public-tour'}],
   } }));
   await page.goto(base, { waitUntil: 'domcontentloaded' });
   await page.getByRole('heading', { name: 'Cổng thông tin tour', exact: true }).waitFor();
@@ -55,12 +54,7 @@ try {
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.screenshot({ path: `work/customer-view-${width}.png`, fullPage: true });
   }
-  assert.equal(await page.locator('.catalog-card').count(), 0);
-  const toggle = page.locator('[data-track="portal:toggle-reference"]');
-  await toggle.click();
-  assert.equal(await page.locator('.catalog-card').count(), 13);
-  await toggle.click();
-  assert.equal(await page.locator('.catalog-card').count(), 0);
+  assert.equal(await page.locator('.reference-catalog,.catalog-card,[data-track="portal:toggle-reference"]').count(), 0);
   releaseSession();
   await page.getByRole('button', { name: 'Kiểm tra lại kết nối', exact: true }).waitFor();
   await page.unroute('**/api/session');

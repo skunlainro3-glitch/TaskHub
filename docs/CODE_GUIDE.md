@@ -10,6 +10,12 @@ Cài Git và **Node.js 24 LTS**. Backend dùng `node:sqlite` có sẵn trong Nod
 git clone --branch build https://github.com/skunlainro3-glitch/TaskHub.git
 cd TaskHub
 npm ci
+Copy-Item -LiteralPath .env.example -Destination .env
+```
+
+Đặt `ADMIN_EMAIL` và `ADMIN_PASSWORD` riêng ít nhất 12 ký tự trong `.env`, giữ `HOST=127.0.0.1` cho local; không commit mật khẩu. Sau đó:
+
+```powershell
 npm run dev
 ```
 
@@ -24,16 +30,15 @@ Các đường dẫn dưới đây tính từ thư mục gốc repo.
 | Tệp / thư mục | Nhiệm vụ |
 | --- | --- |
 | `src/main.jsx` | Ghép ứng dụng, tổng quan, tour/công việc và điều hướng. Đăng nhập và portal đã tách riêng. |
-| `src/portal-ui.jsx` | Portal, thẻ tour, danh mục và chi tiết/tư vấn. |
-| `src/accounts-ui.jsx` | Đăng nhập, lời mời, phục hồi và quản lý nhân viên. |
+| `src/portal-ui.jsx` | Portal, thẻ tour và chi tiết/báo giá/tư vấn; portal không hiển thị danh mục tham khảo nội bộ. |
 | `src/demo-ui.jsx`, `src/demo.css` | Nạp bộ mẫu giả lập tùy chọn vào không gian trống. |
 | `src/tour-media.jsx` | Ảnh minh họa có nguồn và xử lý ảnh lỗi. |
 | `src/operations-ui.jsx` | Biểu mẫu Excel/CSV, đổi số khách và ghép tour B2B. |
 | `src/accounts-ui.jsx` | Tài khoản, lời mời, quyền nhân viên; xuất log/lịch sử theo quyền và tự xóa tài khoản. Form khảo sát và màn Hướng dẫn trong web đã gỡ ở 0.7.2. |
-| `src/styles.css`, `src/portal-filters.css`, `src/operations-polish.css`, `src/experience.css` | Màu, khoảng cách, bố cục và cách hiển thị trên điện thoại. |
+| `src/styles.css`, `src/portal-filters.css`, `src/operations-polish.css`, `src/accounts.css` | Màu, khoảng cách, bố cục và cách hiển thị trên điện thoại. `experience.css` đã được xóa. |
 | `src/api.mjs` | Hàm gọi HTTP của trình duyệt; tập trung xử lý lỗi và thời gian chờ. |
 | `src/dates.mjs` | Hàm lấy ngày hiện tại theo giờ Việt Nam. |
-| `src/tour-search.mjs` | Hàm tìm kiếm, ngày và tình trạng chỗ; không gọi mạng hoặc tự sửa dữ liệu. |
+| `src/tour-search.mjs` | Chuẩn hóa tìm không dấu dùng chung cho tour/việc/tư vấn và lọc ngày/tình trạng chỗ; không gọi mạng hoặc tự sửa dữ liệu. |
 | `src/import-tours.mjs` | Đọc tệp nhập thành các dòng để xem trước và gửi API. |
 | `src/interactions.mjs` | Gom và gửi mã thao tác nút/menu của người thử đã đồng ý. |
 | `server/index.mjs` | API, đăng nhập, phân quyền, kiểm tra đầu vào và các thao tác tour/công việc/tư vấn. |
@@ -49,7 +54,7 @@ Các đường dẫn dưới đây tính từ thư mục gốc repo.
 | `server/accounts.mjs` | Token email, thành viên và vòng đời tài khoản. |
 | `server/demo.mjs` | Bộ dữ liệu mẫu tùy chọn; không tạo bằng chứng người thử thật. |
 | `server/operations.mjs` | Nhập tour, các bước B2B và lưu tương tác. |
-| `server/feature-feedback.mjs` | Kiểm tra, lưu và xuất phản hồi sáu nhóm tính năng. |
+| `server/feature-feedback.mjs` | Đọc/phân tích/xuất phản hồi sáu nhóm tính năng đã lưu; không còn API gửi phản hồi mới. |
 | `server/db.mjs`, `server/connection.mjs` | Khởi tạo bảng local và lớp truy vấn database. |
 | `server/pooling-triggers.sql` | Quy tắc giữ/hoàn chỗ và bảo vệ sổ B2B ở database. |
 | `catalog/enviet-tours.json` | Danh mục nội dung tour tham khảo có nguồn; không phải tồn kho mở bán. |
@@ -58,7 +63,7 @@ Các đường dẫn dưới đây tính từ thư mục gốc repo.
 | `cloud/schema.ts`, `cloud/drizzle/` | Cấu trúc và các lần bổ sung bảng/cột cho D1 public. |
 | `cloud/pages/` | Gateway của Pages và thông tin triển khai; không chứa mật khẩu. |
 
-Các module giao diện nhận những thành phần dùng chung như `Modal`, `Button` và `api` qua hàm `createOperationsUI` hoặc `createExperienceUI`. Cách này giúp dùng cùng nút/hộp thoại mà không lặp lại chúng. Khi sửa một biểu mẫu, bắt đầu từ hàm mang tên biểu mẫu đó; chưa cần tách thêm một tầng thư viện.
+Các module giao diện nhận những thành phần dùng chung như `Modal`, `Button` và `api` qua hàm `createOperationsUI` hoặc `createPortalUI`. Cách này giúp dùng cùng nút/hộp thoại mà không lặp lại chúng. `createExperienceUI` và màn khảo sát/Hướng dẫn đã gỡ, không khôi phục khi sửa chức năng khác. Khi sửa một biểu mẫu, bắt đầu từ hàm mang tên biểu mẫu đó; chưa cần tách thêm một tầng thư viện.
 
 ## 3. Một thao tác đi qua hệ thống thế nào?
 
@@ -84,7 +89,7 @@ Frontend giúp nhập dễ hơn; backend mới quyết định dữ liệu có �
 | `POST /api/tours/import` | Kiểm tra/xem trước hoặc lưu một đợt nhập. |
 | `POST /api/pooling`; `PATCH /api/pooling/:id` | Tạo phiếu và thực hiện xác nhận/ghi nhận thu/hủy. |
 | `GET /api/pooling/export`, `/api/pooling/history/export` | Xuất sổ B2B/lịch sử trong workspace. |
-| `POST /api/interactions`, `/api/feedback/features` | Lưu thao tác và đánh giá của người thử. |
+| `POST /api/interactions` | Lưu mã thao tác của tài khoản tester đã đồng ý; không thu nội dung gõ. API gửi feedback cũ đã gỡ. |
 | `GET /api/research`, `/api/export/*` | Tổng hợp và xuất nghiên cứu theo quyền quản trị/reviewer. |
 
 `:id` và `:workspace` là giá trị thay vào URL, không phải chữ gửi nguyên. Reviewer có quyền xem/xuất, không sửa dữ liệu. Nhân viên có lời mời và quyền chỉ xem/được sửa; đối tác B2B chưa có tài khoản tự duyệt; trường người phụ trách hiện là tên nhập.
@@ -101,7 +106,7 @@ Frontend giúp nhập dễ hơn; backend mới quyết định dữ liệu có �
 | `pooling` | Phiếu B2B, khách ghép, giá net, tổng thu đã ghi nhận và trạng thái. |
 | `pooling_audit` | Ai thực hiện, lúc nào, số thu/trạng thái trước và sau. |
 | `events` | Log nghiệp vụ và mã thao tác của người thử. |
-| `feature_feedback` | Phản hồi mới cho sáu nhóm tính năng; phân biệt tự dùng/xem demo/chưa thử. |
+| `feature_feedback` | Phản hồi sáu nhóm tính năng đã lưu từ phiên bản trước; bản xuất chỉ đọc, không nhận phản hồi mới. |
 | `feedback` | Phản hồi phiên bản trước; giữ riêng, không đổi sang thang điểm mới. |
 
 Các bản ghi nghiệp vụ có workspace. API phải lọc theo workspace lấy từ **phiên đăng nhập**, không tin một workspace do người dùng gửi để đọc/sửa dữ liệu. Portal chỉ nhận các trường công khai; không đưa email tư vấn, ghi chú đối tác hoặc giá net nội bộ vào dữ liệu public.

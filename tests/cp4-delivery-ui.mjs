@@ -134,6 +134,18 @@ try {
   await page.getByRole("textbox", {name:"Tìm tour nội bộ",exact:true}).fill("da nang");
   await page.getByRole("button", {name:"QA Đà Nẵng delivery",exact:true}).waitFor();
   await page.getByRole("textbox", {name:"Tìm tour nội bộ",exact:true}).fill("");
+  await layout("tours");
+  await page.getByRole("button", {name:"QA Đà Nẵng delivery",exact:true}).click();
+  await page.getByRole("dialog").getByRole("button",{name:"Báo giá Excel",exact:true}).waitFor();
+  assert.equal(await page.getByRole("dialog").getByRole("button",{name:"Yêu cầu tư vấn",exact:true}).count(),0);
+  await layout("tour-details");
+  const internalQuote = await download(page.getByRole("dialog").getByRole("button",{name:"Báo giá Excel",exact:true}));
+  assert.ok(internalQuote.some(r=>r[0]==="Giá / khách (VND)"&&r[1]===2000000));
+  await page.getByRole("dialog").getByRole("button",{name:"Sửa tour",exact:true}).click();
+  await page.getByRole("heading",{name:"Cập nhật hành trình",exact:true}).waitFor();
+  assert.equal(await page.locator('input[name="title"]').inputValue(),"QA Đà Nẵng delivery");
+  await layout("tour-editor");
+  await page.getByRole("button",{name:"Hủy",exact:true}).click();
   await page.setViewportSize({width:390,height:844});
   await page.getByRole("button",{name:"Mở menu",exact:true}).click();
   const closeMenu = page.getByRole("button",{name:"Đóng menu điều hành",exact:true});
@@ -191,17 +203,17 @@ try {
   await page.route("**/api/pooling/export.xlsx", route => route.fulfill({
     status:403,contentType:"application/json",body:JSON.stringify({message:"QA không có quyền xuất sổ"}),
   }));
-  await page.getByRole("link",{name:"Công nợ Excel",exact:true}).click();
+  await page.getByRole("link",{name:"Công nợ Excel (toàn bộ)",exact:true}).click();
   await page.getByRole("alert").filter({hasText:"QA không có quyền xuất sổ"}).waitFor();
   assert.equal(new URL(page.url()).pathname,"/app");
   await page.unroute("**/api/pooling/export.xlsx");
   const ledger = await download(
-    page.getByRole("link", { name: "Công nợ Excel", exact: true }),
+    page.getByRole("link", { name: "Công nợ Excel (toàn bộ)", exact: true }),
   );
   assert.equal(ledger[1][6], 100000);
   assert.equal(ledger[1][7], 100000);
   await page
-    .getByRole("button", { name: "In / lưu công nợ PDF", exact: true })
+    .getByRole("button", { name: "In / lưu công nợ PDF (theo bộ lọc)", exact: true })
     .click();
   assert.equal(await page.evaluate(() => window.__prints), 2);
   await page.pdf({

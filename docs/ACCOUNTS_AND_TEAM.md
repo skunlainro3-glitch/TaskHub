@@ -6,11 +6,13 @@
 
 | Tài khoản | Dữ liệu | Quyền |
 | --- | --- | --- |
-| Người đăng ký dùng thử | Không gian riêng | Quản lý tour/công việc/B2B, mời nhân viên, khảo sát |
-| Nhân viên `editor` | Không gian của người mời | Đọc và sửa nghiệp vụ; không mời hoặc quản lý nhân viên |
-| Nhân viên `viewer` | Không gian của người mời | Chỉ đọc và xuất dữ liệu B2B |
+| Người đăng ký dùng thử | Không gian riêng | Quản lý tour/công việc/B2B, mời nhân viên; log tester theo đồng ý. Khảo sát mới ở công cụ ngoài web. |
+| Nhân viên `editor` | Không gian của người mời | Đọc/sửa nghiệp vụ thuộc bộ phận được cấp; không mời hoặc quản lý nhân viên |
+| Nhân viên `viewer` | Không gian của người mời | Chỉ đọc/xuất trong phạm vi bộ phận; không phải vai nào cũng nhận tư vấn hoặc sổ B2B |
 | Reviewer | Không gian agency được chỉ định | Chỉ xem và xuất dữ liệu đánh giá |
 | Admin | Không gian agency | Điều hành và quản lý nhân viên |
+
+Chủ không gian chọn bộ phận Kinh doanh/Điều hành/Kế toán/Quản lý và quyền xem/sửa. Ma trận chính xác trong `shared/access.mjs` và [bàn giao mentor](CP4_MENTOR_REVIEW.md) được áp dụng ở cả menu/API/export. Ví dụ Kinh doanh không đọc sổ B2B; Kế toán không đọc liên hệ tư vấn.
 
 Người phụ trách công việc vẫn là tên nhập; chưa có thông báo hay gán tài khoản bắt buộc. MVP không chuyển tài khoản đã có sang không gian khác. Nếu email đã đăng ký không gian riêng, dùng email mới khi nhận lời mời; dữ liệu cũ được giữ nguyên.
 
@@ -18,7 +20,7 @@ Nhân viên không tham gia thống kê người thử, phản hồi khảo sát
 
 ## Mời nhân viên
 
-Chủ không gian nhập email và quyền, sau đó tự sao chép liên kết riêng gửi đúng người nhận. Đây là liên kết bí mật; không đưa lên tài liệu công khai. Link có hạn 7 ngày, chỉ nhận một lần, phải nhập đúng email được mời. Tạo lời mời mới cùng email sẽ vô hiệu hóa lời mời cũ. Không có tài khoản nào được tự tạo khi chỉ bấm nút tạo lời mời.
+Chủ không gian nhập email, bộ phận và quyền, sau đó tự sao chép liên kết riêng gửi đúng người nhận. Đây là liên kết bí mật; không đưa lên tài liệu công khai. Link có hạn 7 ngày, chỉ nhận một lần, phải nhập đúng email được mời. Tạo lời mời mới cùng email sẽ vô hiệu hóa lời mời cũ. Không có tài khoản nào được tự tạo khi chỉ bấm nút tạo lời mời.
 
 Chủ không gian có thể đổi quyền hoặc xóa nhân viên. Quyền được đọc lại ở mỗi yêu cầu API. Nhân viên tự xóa tài khoản chỉ xóa chính tài khoản đó; tour, chủ không gian và nhân viên khác được giữ. Chủ tài khoản dùng thử tự xóa sẽ xóa toàn bộ không gian cùng các nhân viên của mình; giao diện phải giải thích rõ trước khi xác nhận.
 

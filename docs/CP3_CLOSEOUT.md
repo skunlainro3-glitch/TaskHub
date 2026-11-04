@@ -1,6 +1,6 @@
 # Hoàn thiện các việc trong file tiến độ của Tuấn
 
-Cập nhật 19/10/2026 theo file Word tiến độ và yêu cầu chủ dự án. Code mới tiếp tục vào `build`; giữ `dev` để anh duyệt. Xem [bản demo và các mốc phát hành](CP3_DEMO_RELEASE.md) để chọn đúng phiên bản. Tag cố định mã nguồn, không cố định dữ liệu live; không di chuyển tag đã phát hành.
+Cập nhật 04/11/2026 theo yêu cầu chủ dự án. Code mới tiếp tục vào `build`; giữ `dev` để anh duyệt. Xem [demo CP4 hiện hành](CP4_DEMO_0_7_3.md) và [VALIDATION](VALIDATION.md) để chọn đúng phiên bản. Tag cố định mã nguồn, không cố định dữ liệu live; không di chuyển tag đã phát hành.
 
 | Việc trong file cũ | Đã xử lý | Việc thực tế còn phụ thuộc |
 | --- | --- | --- |
@@ -8,7 +8,7 @@ Cập nhật 19/10/2026 theo file Word tiến độ và yêu cầu chủ dự á
 | Import Excel | XLSX/CSV, xem lỗi/xem trước, nhập nguyên lô tối đa 20 tour và lưu bản nháp | Tệp phải có đủ ngày/lịch/sức chứa; không tự điền dữ liệu thiếu. |
 | Log nút/menu | Log nghiệp vụ và mã điều khiển/thời gian cho participant đã đồng ý | Mất mạng hoặc đóng đột ngột có thể thiếu; không thu nội dung gõ hoặc mật khẩu. |
 | 1–2 chạm | Dùng tour, đổi số chỗ, giao việc từ thẻ và đổi trạng thái nhanh | Việc nhập dữ liệu còn cần gõ; bước xem trước Excel được giữ để kiểm tra. |
-| Dữ liệu demo được duyệt | Có 13 nội dung tour nguồn Én Việt; đã nhập bộ giả lập nhóm cung cấp gồm 3 tour, 3 phiếu B2B chờ và 2 công việc | Cần xác nhận khách đã giữ có gồm B2B không, khoản thu B2B-102 và tour của TASK-03. Giữ nguyên số khách; phiếu chờ chưa giữ thêm chỗ hoặc ghi nhận thu. Xem [bàn giao dữ liệu](OWNER_DEMO_DATA_2026-10-18.md). |
+| Dữ liệu demo được duyệt | Có 13 nội dung Én Việt trong điều hành; bộ giả lập gồm 3 tour, 3 công việc và 3 phiếu B2B (2 xác nhận/1 chờ), theo quy ước chủ dự án cho phép chốt | Chỉ là dữ liệu giả lập, không xác minh giao dịch thật. Không tự áp quy ước demo lên dữ liệu mới chưa rõ. Xem [bàn giao dữ liệu](OWNER_DEMO_DATA_2026-10-18.md). |
 | Tuấn tập demo | Có lời dẫn P1–P3, lịch tập, xử lý lỗi và checklist trong CP3_REHEARSAL.md | Tuấn phải tự thực hành; không đánh dấu đã tập thay Tuấn. |
 | 20 tester và phân tích | Sheet 12 câu/6 nhóm chức năng, công cụ tổng hợp CSV app và công cụ cho hai tab raw của An | Mốc kiểm tra 18/10 chưa có phản hồi người thử được xác nhận. Bảng ví dụ 22 dòng chưa đủ căn cứ để tính là khảo sát thật; cần đối chiếu cá nhân, consent, thời điểm trải nghiệm và đơn vị tiền. |
 | Chuyển reviewer/phụ lục giảng viên | Có hướng dẫn và tài khoản reviewer chỉ xem/xuất | **Anh yêu cầu chưa gửi giảng viên lúc này.** Không gửi thông tin hoặc cấp quyền mới. |
@@ -31,7 +31,7 @@ npm run survey:report -- work/research/Raw_testers.csv work/research/Raw_feature
 
 Lệnh tạo `survey-summary.md` và `survey-summary.json`, chỉ gồm tổng hợp; không thay bản gốc hoặc xuất email/ý kiến tự do. Cả 6 nhóm chức năng được báo riêng. Tự dùng và xem demo có số lượng/ý định riêng; độ dễ dùng chỉ lấy từ người tự thao tác. Thiếu điểm không bị đổi thành 0. WTP chấp nhận 0, không đổi “chưa xác định” thành 0. Các cột và lựa chọn nằm trong [hướng dẫn cho An](CP3_SURVEY_QUESTIONS.md).
 
-Trong app bản 0.4, tải **Người thử CSV** và **Đánh giá tính năng CSV** để chạy cùng lệnh `survey:report` ở trên; chúng dùng đúng cấu trúc `Raw_testers`/`Raw_features` của Sheet. `research:report` dành cho **Phản hồi bản trước CSV** và **Tương tác CSV**, không dùng thay cho hai CSV sáu nhóm tính năng. Không cộng số email từ hai báo cáo để đếm người. Dùng bản gốc riêng để đối chiếu email, log và cá nhân thực tế. Nhóm đọc/mã hóa ý kiến mở rồi mới phân tích căn cứ giá và Iterate/Persevere.
+Từ 0.7.2 app không nhận phản hồi mới. Admin/reviewer vào **Tài khoản & nhóm → Dữ liệu kiểm thử → Bản xuất khảo sát đã lưu** nếu cần CSV Người thử/Đánh giá tính năng lịch sử đúng cấu trúc `Raw_testers`/`Raw_features`. `research:report` dành cho Phản hồi bản trước và nhật ký tương tác; không dùng thay cho hai CSV sáu nhóm tính năng. Không cộng email giữa hai báo cáo thành người độc lập, không nhập khảo sát ngoài web vào log để tạo bằng chứng. Nhóm đối chiếu bản gốc/cá nhân và đọc ý kiến mở trước khi chốt giá hoặc Iterate/Persevere.
 
 ## Bàn giao giảng viên khi anh yêu cầu lại
 

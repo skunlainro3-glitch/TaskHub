@@ -331,7 +331,7 @@ export const server = http.createServer(async (req, res) => {
     }
     if (p === "/api/health") {
       await db.prepare("SELECT 1").get();
-      return json(res, { ok: true, version: "0.7.2" });
+      return json(res, { ok: true, version: "0.7.3" });
     }
     // The in-app feedback forms are retired; historical rows remain exportable.
     if (['/api/feedback','/api/feedback/features'].includes(p)) fail('Không tìm thấy API.',404);
@@ -487,7 +487,6 @@ export const server = http.createServer(async (req, res) => {
       return json(res, {
         agency: ws.id === "agency" ? "TaskHub" : ws.name,
         tours: await publicTours(db, ws.id),
-        catalog: ws.id === "agency" ? referenceCatalog : null,
         updated: now(),
       });
     }
@@ -523,8 +522,16 @@ export const server = http.createServer(async (req, res) => {
         201,
       );
     }
+    // Reference content is loaded only when an operator opens the picker.
+    // Keeping it out of polling avoids sending the same static data every time.
+    if (p === "/api/catalog" && method === "GET") {
+      const u = await required(req);
+      requireCapability(u, 'canEditTours');
+      return json(res, referenceCatalog);
+    }
     if (p === "/api/workspace" && method === "GET") {
       const u = await required(req);
+      const access = workspaceAccess(u);
       const [tasks, tours, inquiries, activity, pooling, poolingHistory] =
         await Promise.all([
           db
@@ -535,20 +542,19 @@ export const server = http.createServer(async (req, res) => {
           db
             .prepare("SELECT * FROM tours WHERE workspace=? ORDER BY departure")
             .all(u.workspace),
-          db
+          access.canReadInquiries ? db
             .prepare(
               "SELECT i.*,t.title AS tour_title FROM inquiries i JOIN tours t ON t.id=i.tour_id WHERE i.workspace=? ORDER BY i.created DESC",
             )
-            .all(u.workspace),
+            .all(u.workspace) : [],
           db
             .prepare(
               "SELECT action,entity,created FROM events WHERE user_id=? ORDER BY created DESC LIMIT 8",
             )
             .all(u.id),
-          db.prepare("SELECT p.*,t.title AS tour_title,t.departure AS departure FROM pooling p JOIN tours t ON t.id=p.tour_id WHERE p.workspace=? ORDER BY p.created DESC").all(u.workspace),
-          db.prepare('SELECT a.*,u.name AS actor_name FROM pooling_audit a LEFT JOIN users u ON u.id=a.actor_id WHERE a.workspace=? ORDER BY a.created DESC,a.id DESC LIMIT 200').all(u.workspace),
+          access.canReadPooling ? db.prepare("SELECT p.*,t.title AS tour_title,t.departure AS departure FROM pooling p JOIN tours t ON t.id=p.tour_id WHERE p.workspace=? ORDER BY p.created DESC").all(u.workspace) : [],
+          access.canReadPooling ? db.prepare('SELECT a.*,u.name AS actor_name FROM pooling_audit a LEFT JOIN users u ON u.id=a.actor_id WHERE a.workspace=? ORDER BY a.created DESC,a.id DESC LIMIT 200').all(u.workspace) : [],
         ]);
-      const access=workspaceAccess(u);
       return json(res, {
         tours,
         workspace_permission: workspacePermission(u),
@@ -557,7 +563,6 @@ export const server = http.createServer(async (req, res) => {
         tasks,
         inquiries:access.canReadInquiries?inquiries:[],
         activity,
-        catalog: referenceCatalog,
         pooling:access.canReadPooling?pooling:[],
         poolingHistory:access.canReadPooling?poolingHistory:[],
       });
@@ -720,10 +725,17 @@ export const server = http.createServer(async (req, res) => {
         ["new", "contacted", "closed"],
         "trạng thái",
       );
+      integer(b.version, "phiên bản", 1, 1000000000);
+      const current = await db.prepare("SELECT version FROM inquiries WHERE id=? AND workspace=?").get(leadMatch[1], u.workspace);
+      if (!current) fail("Không tìm thấy yêu cầu.", 404);
+      if (current.version !== b.version)
+        fail("Yêu cầu đã được người khác cập nhật. Tải lại trước khi đổi trạng thái.", 409);
+      // Recheck in the write itself: another operator can save after this read.
       const result = await db
-        .prepare("UPDATE inquiries SET status=? WHERE id=? AND workspace=?")
-        .run(status, leadMatch[1], u.workspace);
-      if (!result.changes) fail("Không tìm thấy yêu cầu.", 404);
+        .prepare("UPDATE inquiries SET status=?,version=version+1 WHERE id=? AND workspace=? AND version=?")
+        .run(status, leadMatch[1], u.workspace, b.version);
+      if (!result.changes)
+        fail("Yêu cầu đã thay đổi hoặc không còn tồn tại. Tải lại trước khi đổi trạng thái.", 409);
       return json(res, { ok: true });
     }
     if (p === "/api/research" && method === "GET") {

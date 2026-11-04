@@ -1,4 +1,6 @@
-# Bàn giao Tuấn và Huy — 28/10/2026
+# Bàn giao Tuấn và Huy — cập nhật 04/11/2026
+
+Bản sửa ổn định **0.7.3** đang được chuẩn bị theo yêu cầu chủ dự án: sửa bố cục Quản lý tour 320px, bảo vệ trạng thái tư vấn khi cùng sửa, bỏ danh mục tham khảo khỏi portal, làm rõ xem chi tiết/báo giá với Sửa tour, nhãn phạm vi xuất và tìm kiếm không dấu. Dùng [Demo CP4 0.7.3](CP4_DEMO_0_7_3.md) cho hướng dẫn hiện hành. Chỉ coi phát hành/kiểm tra hoàn tất theo bằng chứng trong [VALIDATION](VALIDATION.md), không từ nội dung tài liệu này.
 
 Cập nhật 29/10/2026: gỡ màn Hướng dẫn và các liên kết góp ý GitHub, dòng DÀNH CHO KHÁCH HÀNG, liên kết Nguồn ảnh ở chân trang; ghi công ảnh vẫn nằm trong chi tiết ảnh. Xuất dữ liệu và tự xóa tài khoản chuyển về Tài khoản & nhóm. Form mời nhân viên được căn hàng và kiểm tra responsive.
 
@@ -16,13 +18,13 @@ Rà lại bản **0.7.1**: kiểm tra chức năng thực tế, sửa bảo vệ
 | --- | --- | --- |
 | Huy — 4 | Danh sách kỹ thuật, nhánh build | Có nhánh `build`, checklist/tài liệu này và mã nguồn tách module. `dev` giữ để duyệt. |
 | Huy — 8 | Role Sales, Điều hành, Giám đốc | Đã có Kinh doanh, Điều hành, Kế toán, Quản lý, Chủ không gian, chỉ xem và người đánh giá. Menu/nút/API/CSV/XLSX áp dụng quyền; đổi quyền có hiệu lực ở request kế tiếp. Chủ không gian vẫn cần chọn bộ phận cho nhân viên thực tế. |
-| Huy — 12 | PDF/Excel công nợ và báo giá | B2B: **Công nợ Excel** xuất `.xlsx` thật; **In / lưu công nợ PDF** theo bộ lọc đang xem. Tour: mở chi tiết → **Báo giá Excel** hoặc **In / lưu báo giá PDF**. Không tích hợp ngân hàng, không tạo hóa đơn hoặc xác nhận booking. |
+| Huy — 12 | PDF/Excel công nợ và báo giá | B2B: **Công nợ Excel** xuất `.xlsx` toàn không gian; **In / lưu công nợ PDF** theo bộ lọc đang xem. Tour: bấm tên/ảnh để xem chi tiết → **Báo giá Excel** hoặc **In / lưu báo giá PDF**; **Sửa tour** là thao tác riêng. Không tích hợp ngân hàng, không tạo hóa đơn hoặc xác nhận booking. |
 | Tuấn — 19 | Ảnh 4G, dashboard | WebP 480/960px cho 3 ảnh đang có; bỏ tải lại 13 nguồn ảnh 404, giữ minh họa có nhãn. Thêm **Báo cáo vận hành** lọc ngày, biểu đồ lịch tour/khách đã giữ, công việc/tư vấn và công nợ theo quyền. |
 | Huy — 29 | Nội dung MVP Demo, Solving Pains, Innovation | Có phần nội dung chuyển sang deck ở dưới. Đây là bản nháp để Lợi ghép, không phải deck đã nộp. |
 | Tuấn — 32 | Kịch bản demo 6 phút P1–P3 | Có lịch demo và tiêu chí quan sát ở dưới. Tuấn vẫn phải tập trực tiếp, cả nhóm kiểm tra số liệu trước trình bày. |
-| Tuấn — 24 và 38 | Freeze mềm 30/10, freeze cuối 03/11 | Chuẩn bị bản phát hành/tag ổn định để dùng thử. Không tự đánh dấu hai mốc tương lai đã hoàn tất; cần rà nhận xét mentor và đóng băng đúng ngày. |
+| Tuấn — 24 và 38 | Freeze mềm 30/10, freeze cuối 03/11 | Sheet đọc ngày 04/11 đánh dấu Xong. Hai mốc đã qua; bản sửa lỗi tiếp theo cần ghi commit/tag và kết quả kiểm tra mới. Trạng thái sheet không tự chứng minh đã tập demo hoặc phát hành bản sửa. |
 
-Tab Phân công tổng hợp đang ghi export ở Tuấn, còn Timeline giao cho Huy. Bảng Tiến độ chưa có dòng Huy và đang có `#VALUE!` ở cột Trễ hạn. Đây là vấn đề của bảng phân công cần leader thống nhất, không thay đổi trách nhiệm hoặc sửa sheet trong đợt web này.
+Bảng đọc trực tiếp ngày 04/11 chỉ còn tab Timeline: Tuấn 19/24/32/38 đánh dấu Xong; Huy 4/8/12/29 vẫn ghi Chưa làm, dù nhánh, phân quyền và xuất tệp đã có trong mã nguồn. Nhóm đối chiếu lại tiến độ với sản phẩm và xác nhận nội dung slide đã ghép; không kết luận thiếu chức năng chỉ từ ô chưa đánh dấu. Các nhận xét về tab Phân công/Tiến độ trong lần đọc 28/10 là lịch sử, không dùng làm trạng thái hiện tại. Không sửa sheet trong đợt web này.
 
 ## Dùng dashboard và xuất tệp
 
@@ -46,7 +48,7 @@ Tab Phân công tổng hợp đang ghi export ở Tuấn, còn Timeline giao cho
 4. Mở sẵn Báo cáo vận hành đúng kỳ ngày khởi hành của tour. Thử nút In và tải Excel trước giờ trình bày. Tắt thông báo cá nhân trên máy.
 5. Dùng tag/bản phát hành đã kiểm tra; kiểm tra link public và bản local. Chạy local bằng Node 24+, `npm ci`, tạo `.env` từ `.env.example` với mật khẩu quản trị riêng, `npm run dev`. Có thể dùng bộ mẫu tùy chọn trong workspace trống.
 
-Tag `cp4-demo-v0.7.1` và `cp4-demo-v0.7.0` giữ làm mốc dự phòng trước khi gỡ form trên web. Dùng đúng commit/deployment hiện hành được ghi trong VALIDATION cho đợt 0.7.2, không tự di chuyển tag cũ. Chưa coi việc Tuấn tập demo, ghép nội dung vào slide hay freeze đúng lịch đã hoàn tất chỉ vì code đã phát hành.
+Tag `cp4-demo-v0.7.2`, `cp4-demo-v0.7.1` và `cp4-demo-v0.7.0` giữ nguyên làm mốc dự phòng. Chỉ chọn `cp4-demo-v0.7.3` sau khi commit/tag/deployment được xác nhận trong VALIDATION. Không tự di chuyển tag cũ hoặc coi tập demo/ghép slide đã hoàn tất chỉ vì code đã phát hành.
 
 ## Demo live 6 phút
 
@@ -75,7 +77,7 @@ BMC DOCX và PPTX đính kèm là mẫu chưa điền; không phải giá/gói �
 
 ## Cần nhóm bổ sung / xác nhận
 
-- Nguồn ảnh mới của 13 tour tham khảo đang 404. Không tự dùng ảnh chuyến đi/khách hàng khác để lấp chỗ trống.
+- Nguồn ảnh thay thế nếu tiếp tục dùng danh mục Én Việt nội bộ; 13 nội dung tham khảo không còn nằm ở portal. Không tự dùng ảnh chuyến đi/khách hàng khác để lấp chỗ trống.
 - Bộ phận/quyền thực tế của nhân viên; tên người duyệt chỗ và người đối soát. Hiện có cơ chế, chưa tự gán tên người cho nhóm.
 - Giá và gói An đã chốt; điều kiện dịch vụ/đơn vị liên hệ nếu muốn có báo giá chính thức. Bản hiện tại là giá tham khảo từ dữ liệu tour.
 - Approval Path 2, số liệu mạng/thiết bị thực tế từ Đạt và xác minh 22 phản hồi từ Lợi. Web đầy đủ hơn không tự hoàn tất các phần này.

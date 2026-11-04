@@ -38,7 +38,22 @@ try {
   assert.deepEqual(concurrent.map(r=>r.status).sort(),[200,409]);
   const portal=await req('/public/'+a.body.user.workspace);
   assert.ok(!JSON.stringify(portal.body).includes(a.body.user.email));
+  assert.equal(Object.hasOwn(portal.body,'catalog'),false);
+  assert.equal(Object.hasOwn((await req('/public/agency')).body,'catalog'),false);
+  assert.equal((await req('/catalog')).status,401);
+  assert.equal((await req('/catalog','GET',null,ac)).body.tours.length,13);
+  assert.equal(Object.hasOwn(aw.body,'catalog'),false,'Static reference data must not be polled');
   assert.equal(portal.body.tours.find(t=>t.id===tour.id).version,tour.version+1);
+  assert.equal((await req('/public/'+a.body.user.workspace+'/inquiries','POST',{tour_id:tour.id,name:'QA visitor',email:'qa-cloud@example.test',people:1,note:'Disposable QA only',consent:true})).status,201);
+  const lead=(await req('/workspace','GET',null,ac)).body.inquiries[0];
+  assert.equal(lead.version,1);
+  assert.equal((await req('/inquiries/'+lead.id,'PATCH',{status:'closed'},ac)).status,400);
+  assert.equal((await req('/inquiries/'+lead.id,'PATCH',{status:'closed',version:1},bc)).status,404);
+  const leadRace=await Promise.all(['contacted','closed'].map(status=>req('/inquiries/'+lead.id,'PATCH',{status,version:lead.version},ac)));
+  assert.deepEqual(leadRace.map(r=>r.status).sort(),[200,409]);
+  assert.equal((await req('/inquiries/'+lead.id,'PATCH',{status:'new',version:lead.version},ac)).status,409);
+  const leadSaved=(await req('/workspace','GET',null,ac)).body.inquiries[0];
+  assert.equal(leadSaved.version,2);
   const task=await req('/tasks','POST',{tour_id:tour.id,title:'Atomic D1 QA',assignee:'QA',due:tour.departure,priority:'high'},ac);
   assert.equal(task.status,201);
   assert.equal((await req('/tasks/'+task.body.id,'PATCH',{status:'done',version:1},bc)).status,409);
@@ -76,7 +91,7 @@ try {
   const after=(await req('/workspace','GET',null,ac)).body;
   assert.deepEqual(after.tours,[]);assert.deepEqual(after.tasks,[]);
   assert.equal((await req('/events','POST',{action:'portal_viewed'},ac,{Origin:'https://unrelated.example'})).status,403);
-  console.log('CLOUD API PASS: consent, atomic duplicate signup, tenant isolation, capacity/date validation, concurrent version updates, correct event logs, retired feedback write APIs, protected historical CSV and reviewer restrictions.');
+  console.log('CLOUD API PASS: consent, atomic duplicate signup, tenant isolation, capacity/date validation, concurrent tour/inquiry version updates, operator-only reference catalog, correct event logs, retired feedback write APIs, protected historical CSV and reviewer restrictions.');
 } finally {
   for(const cookie of cookies) assert.equal((await req('/account','DELETE',null,cookie)).status,200);
   console.log('Disposable cloud API QA accounts deleted.');

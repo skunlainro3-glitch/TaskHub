@@ -154,6 +154,9 @@ h3 {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
 }
 .icon-btn {
   background: transparent;
@@ -1917,9 +1920,10 @@ textarea {
   }
   .page-title > .button-row {
     margin-top: 3px;
+    width: 100%;
   }
   .page-title .btn {
-    min-height: 36px;
+    min-height: 44px;
     font-size: 12px;
     padding: 9px 12px;
   }
@@ -2784,29 +2788,10 @@ td small {
 .delete-confirm { margin-top: 20px; padding: 18px; border: 1px solid #e6bdbd; border-radius: 12px; background: #fff8f8; }
 .delete-confirm p { font-size: 14px; line-height: 1.65; }
 .delete-confirm .btn { margin: 6px 8px 0 0; }
-.reference-catalog { margin-top: 20px; }
-.catalog-heading { display: flex; justify-content: space-between; align-items: end; gap: 16px; }
-.catalog-heading h3 { margin: 8px 0 0; font-size: clamp(22px, 3vw, 30px); color: #173d69; letter-spacing: -.6px; }
-.catalog-heading > span { color: #536e8d; font-size: 13px; white-space: nowrap; }
-.catalog-intro { color: #536e8d; margin: 12px 0 26px; line-height: 1.7; max-width: 710px; }
 .catalog-image { display: block; width: 100%; height: 100%; object-fit: cover; }
 .catalog-placeholder { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; width: 100%; height: 100%; background: linear-gradient(140deg, #e5f1ff, #f5f9ff); color: #517ba7; font-size: 12px; }
 .catalog-image-note { position: absolute; bottom: 9px; right: 10px; background: #ffffffeb; color: #45617f; border-radius: 5px; padding: 4px 7px; font-size: 10px; }
-.catalog-card { display: flex; flex-direction: column; }
-.catalog-card .cover-button { flex-shrink: 0; }
-.catalog-card .cover-button { height: 215px; }
-.catalog-card .tour-card-body { display: flex; flex-direction: column; flex: 1; }
-.catalog-card .card-title { font-size: 18px; line-height: 1.45; align-items: flex-start; }
-.catalog-card .card-title svg { flex-shrink: 0; margin-top: 4px; }
-.catalog-card .tour-card-body > p { line-height: 1.6; min-height: 0; margin: 8px 0 18px; }
-.catalog-kicker { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; color: #567596; font-size: 11px; letter-spacing: .5px; }
-.catalog-kicker .badge { letter-spacing: 0; }
-.catalog-departure { display: flex; align-items: center; gap: 8px; color: #536e8d; font-size: 12px; margin-top: auto; padding-top: 5px; }
-.catalog-departure svg { flex-shrink: 0; }
-.catalog-price { border-top: 1px solid #e3edf7; margin-top: 15px; padding-top: 15px; flex-wrap: wrap; gap: 10px; }
-.catalog-price > span { font-size: 12px; }
-.catalog-attribution { margin: 24px 0 0; color: #536e8d; line-height: 1.7; font-size: 12px; }
-.catalog-attribution a, .catalog-source a { color: #205da3; text-underline-offset: 3px; }
+.catalog-source a { color: #205da3; text-underline-offset: 3px; }
 .catalog-detail-cover { height: clamp(175px, 32vw, 300px); overflow: hidden; border-radius: 14px; margin-bottom: 24px; }
 .catalog-detail-cover svg { width: 100%; height: 100%; }
 .catalog-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; padding-bottom: 22px; border-bottom: 1px solid #e1ebf6; }
@@ -2834,8 +2819,8 @@ td small {
 .catalog-picker-detail { display: flex; align-items: center; flex: 1; min-width: 0; gap: 14px; background: transparent; color: inherit; border: 0; text-align: left; cursor: pointer; padding: 0; }
 .catalog-picker-detail > span { display: grid; gap: 7px; }
 .catalog-picker-detail svg { flex-shrink: 0; }
-.tour-quick-actions { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid #e1ebf6; margin-top: 14px; }
-.tour-quick-actions .btn { flex: 1; padding: 10px 8px; font-size: 12px; }
+.tour-quick-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; border-top: 1px solid #e1ebf6; margin-top: 14px; }
+.tour-quick-actions .btn { flex: 1 1 105px; min-width: 0; min-height: 44px; padding: 10px 8px; font-size: 12px; }
 .internal-tour .cover-button { height: 145px; }
 .pooling-notice, .import-guide { display: flex; align-items: flex-start; gap: 14px; padding: 20px; background: #edf5ff; border: 1px solid #d6e6f8; border-radius: 14px; color: #264f7b; margin-bottom: 20px; }
 .pooling-notice > svg, .import-guide > svg { flex-shrink: 0; }
@@ -2882,8 +2867,6 @@ td small {
   .catalog-picker-row > .btn { width: 100%; }
 }
 @media(max-width: 650px) {
-  .catalog-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
-  .catalog-card .cover-button { height: 195px; }
   .catalog-facts { gap: 16px 12px; }
   .catalog-facts strong { font-size: 14px; }
   .catalog-source { padding: 14px; gap: 9px; }

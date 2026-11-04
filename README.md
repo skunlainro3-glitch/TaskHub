@@ -1,4 +1,8 @@
-# TaskHub — CP3 MVP
+# TaskHub — MVP điều hành tour
+
+Chuẩn bị bản sửa ổn định **0.7.3**, cập nhật tài liệu ngày **04/11/2026**. Dùng [hướng dẫn demo CP4](docs/CP4_DEMO_0_7_3.md) cho luồng hiện tại, bản local dự phòng và bảng yêu cầu. Commit/tag/deployment đã kiểm chứng được ghi tại [VALIDATION](docs/VALIDATION.md); không suy ra một bản đã phát hành chỉ từ số phiên bản trong tài liệu. Code mới tiếp tục vào `build`; `dev` giữ để chủ repo duyệt.
+
+Các đoạn mô tả 0.7.2/0.7.0/0.6.0 bên dưới là lịch sử thay đổi; hướng dẫn thao tác hiện hành nằm trong tài liệu CP4 trên.
 
 Cập nhật 29/10/2026: gỡ màn Hướng dẫn và các liên kết góp ý GitHub, dòng DÀNH CHO KHÁCH HÀNG, liên kết Nguồn ảnh ở chân trang; ghi công ảnh vẫn nằm trong chi tiết ảnh. Xuất dữ liệu và tự xóa tài khoản chuyển về Tài khoản & nhóm. Form mời nhân viên được căn hàng và kiểm tra responsive.
 
@@ -16,7 +20,7 @@ Web app hỗ trợ doanh nghiệp du lịch nhỏ và vừa. Local dùng React/V
 
 Hai cách xem riêng: `/` và `/portal/<workspace>` là **cổng khách hàng**, xem tour công khai và gửi yêu cầu không cần tài khoản. `/app` là **không gian điều hành**, có trang đăng nhập riêng; sau đăng nhập chỉ xem/sửa dữ liệu theo quyền đã cấp. Chức danh nghề nghiệp trong khảo sát không cấp quyền quản trị. Khách chưa đăng nhập không truy cập được API nội bộ.
 
-Danh mục tham khảo gồm 13 tour từ nguồn Én Việt do chủ dự án cung cấp. Xem [dữ liệu tour và cách đưa vào điều hành](docs/TOUR_CATALOG.md). Ngày đi, sức chứa, số khách và lịch trình từng ngày vẫn cần người quản lý xác nhận trước khi công khai một tour vận hành.
+Danh mục gồm 13 nội dung tour nguồn Én Việt do chủ dự án cung cấp, chỉ dùng trong điều hành để tạo tour nháp. Cổng khách hàng chỉ tìm/lọc các tour do điều hành công khai, không gộp danh mục tham khảo vào kết quả. Xem [dữ liệu tour và cách đưa vào điều hành](docs/TOUR_CATALOG.md). Ngày đi, sức chứa, số khách và lịch trình từng ngày vẫn cần người quản lý xác nhận trước khi công khai một tour vận hành.
 
 Bản 0.5 dùng bộ dữ liệu giả lập đã được chủ dự án cho phép chốt: 3 tour DEMO, 3 công việc, 2 phiếu B2B đã xác nhận và 1 phiếu chờ. Người dùng mới có không gian trống và được tự chọn **Dùng dữ liệu mẫu** để thử luồng đầy đủ; không tự tạo khảo sát hoặc người dùng giả. Xem [nguồn, cách nhập và các điểm cần đối chiếu](docs/OWNER_DEMO_DATA_2026-10-18.md); không dùng bộ này làm bằng chứng khách hàng hoặc khảo sát thật.
 
@@ -24,9 +28,18 @@ Giao diện chạy trên Cloudflare Pages; gateway dùng tiếp backend/database
 
 Lịch sử bàn giao nền tảng: [bản 0.5](docs/RELEASE_0_5.md) và [bản 0.5.1](docs/RELEASE_0_5_1.md). Đây là các mốc cũ; trạng thái hiện hành nằm trong bàn giao Tuấn/Huy và VALIDATION.
 
-## Chạy trên máy anh
+## Chạy khi mới clone
 
-Máy hiện tại đã cài thư viện. Trong terminal ở thư mục TaskHub:
+Cài Git và Node.js **24 trở lên**, rồi mở terminal:
+
+```powershell
+git clone --branch build https://github.com/skunlainro3-glitch/TaskHub.git
+cd TaskHub
+npm ci
+Copy-Item -LiteralPath .env.example -Destination .env
+```
+
+Mở `.env`, đặt `ADMIN_EMAIL` và `ADMIN_PASSWORD` riêng ít nhất 12 ký tự. Giữ `HOST=127.0.0.1` cho local. Không commit `.env`, mật khẩu hoặc database. Sau đó:
 
 ```powershell
 npm run dev
@@ -35,12 +48,13 @@ npm run dev
 Mở http://127.0.0.1:5173. Frontend dùng port 5173; API port 3001. Dừng bằng Ctrl+C.
 
 - **Dùng thử TaskHub**: vào **Dành cho điều hành** → **Dùng thử TaskHub** để tạo tài khoản và không gian riêng trống. Người dùng tự nhập tour/công việc hoặc chủ động nạp bộ mẫu giả lập vào không gian trống; tour mới mặc định chưa công khai. Không tự tạo giá, lịch hoặc tên nhân sự.
-- **Điều hành**: vào `/app` hoặc bấm **Dành cho điều hành** → **Đăng nhập**. Tài khoản local mặc định `admin@taskhub.local`, mật khẩu `TaskHub-Local-2026!`. Mặc định chỉ bind localhost. Tài khoản này xem kết quả và tải CSV.
-- Mật khẩu trên chỉ dành cho local. Khi deploy phải đặt mật khẩu riêng ít nhất 12 ký tự trong biến môi trường `ADMIN_PASSWORD`; production không có mật khẩu mặc định.
+- **Điều hành**: vào `/app` hoặc bấm **Dành cho điều hành** → **Đăng nhập** bằng tài khoản đã đặt trong `.env`. Mặc định chỉ bind localhost. Production bắt buộc mật khẩu riêng, không có mật khẩu mặc định.
 - Nếu chuyển sang máy khác: cài Node.js **24 LTS**, chạy `npm ci` trước. Không dùng Node 18/20 vì backend dùng `node:sqlite`.
 - Dữ liệu nằm trong `data/taskhub.sqlite` (và tệp WAL/SHM khi chạy). `data/` và `.env` đã được bỏ khỏi Git.
 
-## Phạm vi hiện hành 0.7.2
+Để dùng đúng code demo sau khi tag đã phát hành, chạy `git fetch --tags` rồi `git switch --detach cp4-demo-v0.7.3`, `npm ci` và `npm run dev`. Tag cố định code, không khóa dữ liệu live; dùng workspace demo riêng. Muốn tiếp tục sửa code thì `git switch build`. Giữ nguyên tag cũ.
+
+## Phạm vi MVP
 
 | CP2 / CP3                         | MVP chạy được                                                                                     | Cách kiểm tra                                  |
 | --------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
@@ -48,7 +62,7 @@ Mở http://127.0.0.1:5173. Frontend dùng port 5173; API port 3001. Dừng bằ
 | P2: khách cần thông tin ngoài giờ | Cổng tour công khai: ngày, giá, lịch trình, số chỗ; gửi yêu cầu tư vấn                            | Mở cổng khách hàng, xem tour và gửi yêu cầu    |
 | P3: ghép tour và đối soát B2B | Phiếu đối tác nội bộ; xác nhận giữ chỗ, ghi nhận thu/còn phải thu, hủy hoàn chỗ và CSV | Tạo phiếu → xác nhận → đối soát → hủy |
 | Giảm thao tác nhập tour | Nhập XLSX/CSV có xem trước; chọn nội dung có nguồn và đổi số chỗ/giao việc ngay trên thẻ | Nhập tệp thành bản nháp, kiểm tra portal sau khi công khai |
-| Lịch / số chỗ dùng chung          | API điều hành và portal dùng cùng SQLite; portal đọc lại mỗi 5 giây khi tab đang hiển thị         | Sửa số khách hoặc ngày, kiểm tra portal        |
+| Lịch / số chỗ dùng chung          | Điều hành và portal dùng chung dữ liệu theo workspace: SQLite local, D1 public; polling khi tab đang hiển thị | Sửa số khách hoặc ngày, kiểm tra portal |
 | Tránh cập nhật sai                | Kiểm tra số khách không vượt sức chứa; phiên bản tour để từ chối ghi đè bản cũ                    | Thử vượt sức chứa hoặc sửa đồng thời ở hai tab |
 | CP3: người dùng thử thật          | Đăng ký tự nguyện và log thao tác; nhóm thu phản hồi bằng khảo sát bên ngoài, không còn form đánh giá/giá trên web | Tester dùng MVP rồi trả lời công cụ khảo sát do nhóm cung cấp |
 | CP3: dữ liệu gốc                  | Admin/reviewer xuất nhật ký tương tác; các bản xuất phản hồi lịch sử chỉ đọc vẫn được bảo vệ quyền | Tài khoản & nhóm → Nhật ký thao tác CSV; bản xuất lịch sử theo quyền |
@@ -59,20 +73,17 @@ Mở http://127.0.0.1:5173. Frontend dùng port 5173; API port 3001. Dừng bằ
 
 Bản 0.4 thêm sửa/xóa công việc có phiên bản, lọc việc quá hạn, lịch sử đối soát B2B theo người/thời gian/số trước-sau, nạp lại khi xung đột và hướng dẫn mở trực tiếp từng luồng. Tour đã qua ngày khởi hành theo giờ Việt Nam không nhận tư vấn mới; tour vừa rút công khai sẽ khóa form đang mở. Xem [báo cáo rà soát và thông tin nhóm cần bổ sung](docs/WEB_REVIEW_2026-10-18.md).
 
-Bản 0.4.1 thêm tìm tour không dấu, lọc ngày/chỗ, số kết quả và đặt lại bộ lọc. Danh mục chưa có lịch/chỗ được giải thích riêng khi lọc lịch. Phần giới thiệu trên điện thoại gọn hơn; form nhập/lưu khóa các lối đóng trong lúc xử lý. API tư vấn kiểm tra lại khả dụng ngay lúc ghi dữ liệu, không tự giữ chỗ. Nhóm mới nhận code đọc [hướng dẫn mã nguồn](docs/CODE_GUIDE.md).
+Bản 0.4.1 thêm tìm tour không dấu, lọc ngày/chỗ, số kết quả và đặt lại bộ lọc. Từ 0.7.3 danh mục tham khảo chỉ còn trong điều hành. Form nhập/lưu khóa các lối đóng trong lúc xử lý. API tư vấn kiểm tra lại khả dụng ngay lúc ghi dữ liệu, không tự giữ chỗ. Nhóm mới nhận code đọc [hướng dẫn mã nguồn](docs/CODE_GUIDE.md).
 
 B2B chưa có đối tác tự đăng nhập/duyệt; net price chỉ theo từng phiếu, chưa quản lý net/markup toàn tour hoặc nhà cung cấp. Thanh toán, chatbot và Google login chưa triển khai. Xác minh email đã được bỏ theo yêu cầu chủ dự án. Khôi phục mật khẩu có luồng/token nhưng chưa có dịch vụ gửi email. Nhân viên có tài khoản riêng theo lời mời và quyền được cấp; người phụ trách công việc vẫn là tên nhập, chưa có thông báo tự động đến người đó.
 
 Yêu cầu tư vấn không giữ chỗ hoặc xác nhận booking; chưa có tiền giao dịch thật. Tour, giá, lịch và người phụ trách phải do người quản lý nhập; bản cài mới không tự tạo dữ liệu kinh doanh. Giá SaaS chưa chốt; 500.000 VND/tháng trong CP2 là giả định, không dùng làm kết quả khảo sát. Từ 0.7.2, web không thu mức sẵn sàng trả hoặc có form Van Westendorp; phân tích giá dùng dữ liệu khảo sát bên ngoài đã được nhóm cung cấp và xác minh.
 
-## Kịch bản demo khoảng 5 phút
+## Demo và xuất báo giá
 
-1. Đăng nhập / tạo không gian dùng thử. Chỉ ba mục: quản lý tour, công việc và cổng khách hàng.
-2. Tạo tour bằng thông tin tự nhập, kiểm tra và chọn công khai. Mở lại tour để đổi ngày hoặc số khách giữ chỗ rồi lưu.
-3. Mở cổng khách hàng: đối chiếu số chỗ, ngày và giá với thông tin vừa cập nhật. Xem lịch trình.
-4. Gửi yêu cầu tư vấn bằng **email giả**; về điều hành xem yêu cầu mới. Giải thích chưa xác nhận booking.
-5. Tạo việc “Chốt danh sách khách”, chỉ định người phụ trách và hạn. Chuyển sang hoàn thành.
-6. Tester trả lời khảo sát bên ngoài do nhóm cung cấp. Admin/reviewer tải nhật ký thao tác để đối chiếu; không tạo phản hồi thay người thử.
+Dùng [kịch bản 6 phút P1–P3](docs/CP4_DEMO_0_7_3.md). Trong Quản lý tour, bấm tên/ảnh để xem chi tiết; **Sửa tour** là thao tác riêng dành cho người có quyền. Chi tiết có **Báo giá Excel** và **In / lưu báo giá PDF**. Portal cũng mở được thông tin công khai này. Báo giá hiện là thông tin tour/giá mỗi khách, chưa tính số khách hoặc chiết khấu cá nhân.
+
+Excel/CSV công nợ B2B xuất **toàn không gian**; bản in PDF theo **bộ lọc đang xem**. Đọc nhãn phạm vi cạnh nút trước khi đối chiếu. PDF mở hộp thoại trình duyệt để chọn Lưu dưới dạng PDF, không tự tải PDF từ máy chủ.
 
 ## Thử với ít nhất 20 người
 
@@ -102,7 +113,7 @@ Tài liệu trình diễn và giải thích kỹ thuật: [bàn giao FE/BE](docs
 
 ## Tài khoản và đội ngũ
 
-Mục **Tài khoản & nhóm** cho phép chủ không gian tạo lời mời riêng theo email, chọn nhân viên **chỉ xem / được sửa**, đổi quyền và thu hồi truy cập. Nhân viên cùng đọc tour, công việc và B2B; không tính vào khảo sát. Tên người phụ trách việc vẫn là thông tin tự nhập. Xem [tài khoản và cấu hình email](docs/ACCOUNTS_AND_TEAM.md).
+Mục **Tài khoản & nhóm** cho phép chủ không gian tạo lời mời riêng theo email, chọn bộ phận và quyền **chỉ xem / được sửa**, đổi quyền và thu hồi truy cập. Menu/API/export giới hạn theo bộ phận; không phải nhân viên nào cũng đọc toàn bộ tư vấn/B2B. Nhân viên không tính vào khảo sát; log UI phục vụ tài khoản tester đã đồng ý, không phải audit đầy đủ mọi nhân viên. Tên người phụ trách việc vẫn là thông tin tự nhập. Xem [tài khoản và cấu hình email](docs/ACCOUNTS_AND_TEAM.md).
 
 Thẻ **Tài khoản & bảo mật** chỉ hiển thị tên, email và quyền hiện tại. Xác minh email đã được xóa khỏi giao diện, API và hàm xử lý; đường dẫn API cũ không còn tồn tại. Khôi phục mật khẩu giữ token dùng một lần/có hạn; production chưa kết nối dịch vụ gửi email nên không trả token khôi phục hoặc giả vờ đã gửi. Lời mời nhân viên sao chép thủ công vẫn hoạt động. Không dùng tài khoản Gmail cá nhân làm dịch vụ gửi thư ngầm.
 
@@ -126,7 +137,7 @@ npm start
 
 Kiểm thử UI: để `npm run dev` đang chạy trong terminal thứ nhất, chạy `npm run test:ui` trong terminal thứ hai. Windows dùng Edge chạy ẩn; hệ điều hành khác cần `npx playwright install chromium`. Có thể đặt `PLAYWRIGHT_CHANNEL` hoặc `TEST_URL` nếu dùng môi trường khác. Script tạo tài khoản/email giả, thử tour → portal → inquiry → task/B2B và đối chiếu log; kiểm tra màn hình 320/390/768/1440px, phục hồi kết nối và tìm kiếm, rồi xóa tài khoản test. Menu/form Phản hồi MVP không còn là bước demo. Ảnh QA lưu trong `work/`. Các script dùng tài khoản QA tạm riêng và xóa trong finally; không chỉnh sửa dữ liệu nghiệp vụ sẵn có. Kiểm tra mới: `TEST_URL=http://127.0.0.1:3001 node tests/v05-ui.mjs` (PowerShell đặt `$env:TEST_URL` trước).
 
-Giao diện ngày 14/10 dùng nền xanh dương nhạt, nút xanh đậm, chữ slate và điểm nhấn mint/lavender. Tổng quan có lộ trình thử 3 bước. Khi mạng lỗi, web phân biệt dữ liệu chưa tải được với tìm kiếm không có kết quả, và cho phép tải lại. Menu mobile có lớp nền, nút đóng, Escape và trạng thái truy cập bằng bàn phím.
+Giao diện dùng nền xanh dương nhạt, nút xanh đậm và chữ slate. Khi mạng lỗi, web phân biệt dữ liệu chưa tải được với tìm kiếm không có kết quả, và cho phép tải lại. Menu mobile có lớp nền, nút đóng, Escape và trạng thái truy cập bằng bàn phím. Không còn hero trang trí, form Phản hồi MVP hoặc màn Hướng dẫn đã bỏ.
 
 Xem [bảng đối chiếu CP3](docs/CP3_READINESS.md) cho phần đã xây, giới hạn và bằng chứng còn cần thu.
 

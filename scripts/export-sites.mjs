@@ -243,7 +243,17 @@ function copyMigrations(from,to) {
   for(const entry of readdirSync(from,{withFileTypes:true})) {
     const source=join(from,entry.name),dest=join(to,entry.name);
     if(entry.isDirectory())copyMigrations(source,dest);
-    else { if(existsSync(dest))assert.ok(readFileSync(source).equals(readFileSync(dest)),'Migration history differs; preserve applied files: '+entry.name); else copyFileSync(source,dest); }
+    else if (existsSync(dest)) {
+      if (entry.name === '_journal.json') {
+        const oldJournal = JSON.parse(readFileSync(dest, 'utf8'));
+        const nextJournal = JSON.parse(readFileSync(source, 'utf8'));
+        assert.equal(nextJournal.version, oldJournal.version, 'Preserve migration journal format');
+        assert.equal(nextJournal.dialect, oldJournal.dialect, 'Preserve migration journal dialect');
+        assert.deepEqual(nextJournal.entries.slice(0, oldJournal.entries.length), oldJournal.entries, 'Applied migration journal entries are immutable');
+        // Append metadata for new migrations; never rewrite applied entries.
+        copyFileSync(source, dest);
+      } else assert.ok(readFileSync(source).equals(readFileSync(dest)), 'Migration history differs; preserve applied files: ' + entry.name);
+    } else copyFileSync(source,dest);
   }
 }
 copyMigrations('cloud/drizzle',join(target,'drizzle'));

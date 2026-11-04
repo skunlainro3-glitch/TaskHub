@@ -55,8 +55,7 @@ import { tourDeletionSummary } from "./pooling-view.mjs";
 import { todayVietnam as todayVN } from "./dates.mjs";
 import {
   matchesTourSearch,
-  matchesTourSchedule,
-  hasScheduleFilters,
+  normalizeSearchText,
 } from "./tour-search.mjs";
 import "./portal-filters.css";
 const money = (n) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
@@ -936,9 +935,8 @@ function Tasks({ data, onNew, onChange, onEdit, pendingId, readOnly = false }) {
         (dueFilter === "overdue" && t.status !== "done" && t.due < todayVN()) ||
         (dueFilter === "today" && t.due === todayVN()) ||
         (dueFilter === "high" && t.priority === "high")) &&
-      (t.title + " " + t.assignee)
-        .toLocaleLowerCase()
-        .includes(query.toLocaleLowerCase()),
+      normalizeSearchText(t.title + " " + t.assignee)
+        .includes(normalizeSearchText(query)),
   );
   return (
     <>
@@ -1096,6 +1094,8 @@ function Workspace({ user, onLogout, onPortal, notify }) {
     [leadQuery, setLeadQuery] = useState(""),
     [leadStatus, setLeadStatus] = useState("");
   const [poolTourFilter, setPoolTourFilter] = useState("");
+  const [catalog, setCatalog] = useState(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
   const [planningDirty, setPlanningDirty] = useState(false);
   const leavePlanning = () => !planningDirty || confirm("Bản nháp kế hoạch chưa lưu. Rời khỏi và bỏ thay đổi?");
   const changeNav = (id) => { if(id!==nav && leavePlanning()) {setPlanningDirty(false);setNav(id);} };
@@ -1175,14 +1175,33 @@ function Workspace({ user, onLogout, onPortal, notify }) {
   async function changeLead(i, status) {
     setPendingLead(i.id);
     try {
-      await api("/inquiries/" + i.id, "PATCH", { status });
+      await api("/inquiries/" + i.id, "PATCH", { status, version: i.version });
       await reload();
       notify("Đã cập nhật yêu cầu.");
     } catch (e) {
-      notify(e.message, "error");
+      if (e.status === 409) {
+        try {
+          await reload();
+          notify("Yêu cầu đã thay đổi. Đã tải lại; kiểm tra trạng thái mới trước khi sửa.", "error");
+        } catch (refreshError) {
+          setError(refreshError.message);
+          notify("Yêu cầu đã thay đổi. Chưa tải được bản mới; bấm Thử tải lại trước khi sửa.", "error");
+        }
+      } else notify(e.message, "error");
     } finally {
       setPendingLead("");
     }
+  }
+  async function openCatalog() {
+    if (catalogLoading) return;
+    if (catalog) { setEditor({ type: "catalog" }); return; }
+    setCatalogLoading(true);
+    try {
+      const result = await api("/catalog");
+      setCatalog(result);
+      setEditor({ type: "catalog" });
+    } catch (e) { notify(e.message, "error"); }
+    finally { setCatalogLoading(false); }
   }
   async function deleteAccount() {
     const staff = user.role === "staff";
@@ -1223,10 +1242,10 @@ function Workspace({ user, onLogout, onPortal, notify }) {
   const visibleLeads = (data?.inquiries || []).filter(
     (i) =>
       (!leadStatus || i.status === leadStatus) &&
-      (i.name + " " + i.email + " " + i.tour_title)
-        .toLocaleLowerCase("vi")
-        .includes(leadQuery.toLocaleLowerCase("vi")),
+      normalizeSearchText(i.name + " " + i.email + " " + i.tour_title)
+        .includes(normalizeSearchText(leadQuery)),
   );
+  const detailTour = editor?.tour && data?.tours.find((tour) => tour.id === editor.tour.id);
   const allowedNav = navItems.filter(([id]) =>
     (id !== "inbox" || access.canReadInquiries) &&
     (id !== "pooling" || access.canReadPooling) &&
@@ -1396,11 +1415,11 @@ function Workspace({ user, onLogout, onPortal, notify }) {
               {nav === "tours" && access.canEditTours && (
                 <Button
                   variant="ghost"
-                  disabled={!data?.catalog?.tours.length}
-                  onClick={() => setEditor({ type: "catalog" })}
+                  disabled={catalogLoading}
+                  onClick={openCatalog}
                 >
                   <Compass size={17} />
-                  Danh mục Én Việt
+                  {catalogLoading ? "Đang tải danh mục…" : "Danh mục Én Việt"}
                 </Button>
               )}
               {nav === "tours" && access.canEditTours && (
@@ -1466,7 +1485,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
                   data={data}
                   onNav={setNav}
                   onTask={() => setEditor({ type: "task" })}
-                  onTour={(t) => setEditor({ type: "tour", tour: t })}
+                  onTour={(t) => setEditor({ type: "detail", tour: t })}
                   onPortal={onPortal}
                 />
               )}{" "}
@@ -1502,7 +1521,8 @@ function Workspace({ user, onLogout, onPortal, notify }) {
                       <TourCard
                         key={t.id}
                         tour={t}
-                        onOpen={(tour) => setEditor({ type: "tour", tour })}
+                        onOpen={(tour) => setEditor({ type: "detail", tour })}
+                        onEdit={access.canEditTours ? (tour) => setEditor({ type: "tour", tour }) : undefined}
                         onSeats={
                           !access.canEditTours
                             ? undefined
@@ -1677,19 +1697,27 @@ function Workspace({ user, onLogout, onPortal, notify }) {
             </>
           )}
           <footer className="app-footer">
-            <span>TaskHub · Điều hành tour · 0.7.2</span>
+            <span>TaskHub · Điều hành tour · 0.7.3</span>
             <span>Tour · Lịch / số chỗ · Công việc</span>
           </footer>
         </main>
       </div>
-      {editor?.type === "tour" && !access.canEditTours && editor.tour && (
+      {(editor?.type === "detail" || (editor?.type === "tour" && !access.canEditTours)) && detailTour && (
         <TourDetails
-          tour={editor.tour}
+          tour={detailTour}
           workspace={user.workspace}
-          readOnly
+          internal
+          readOnly={!access.canEditTours}
+          onEdit={access.canEditTours ? () => setEditor({ type: "tour", tour: detailTour }) : undefined}
           onClose={() => setEditor(null)}
           notify={notify}
         />
+      )}
+      {editor?.type === "detail" && data && !detailTour && (
+        <Modal title="Tour không còn tồn tại" onClose={() => setEditor(null)}>
+          <p>Tour đã bị xóa. Danh sách đã cập nhật; hãy chọn một tour khác.</p>
+          <Button onClick={() => setEditor(null)}>Về danh sách tour</Button>
+        </Modal>
       )}
       {editor?.type === "tour" && access.canEditTours && (
         <TourEditor
@@ -1725,9 +1753,9 @@ function Workspace({ user, onLogout, onPortal, notify }) {
           }}
         />
       )}
-      {editor?.type === "catalog" && access.canEditTours && data?.catalog && (
+      {editor?.type === "catalog" && access.canEditTours && catalog && (
         <CatalogPicker
-          catalog={data.catalog}
+          catalog={catalog}
           onClose={() => setEditor(null)}
           onUse={(prefill) => setEditor({ type: "tour", prefill })}
         />

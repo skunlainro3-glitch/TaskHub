@@ -1,4 +1,15 @@
-# Xác nhận bản MVP 0.2 — 14/10/2026
+# Kiểm chứng TaskHub
+
+## Bản ổn định 0.7.3 — 04/11/2026
+
+- Đối chiếu lại CP4, rubric, Timeline hiện tại và mã nguồn trước khi sửa. Tính năng MVP, cải thiện tùy chọn và phần cần bằng chứng ngoài web được tách tại [bàn giao demo](CP4_DEMO_0_7_3.md). Chưa xác nhận toàn bộ CP4 hoặc chấp thuận Path 2.
+- Sửa tràn ngang Quản lý tour ở 320px: hàng nút tự xuống dòng, thao tác nhanh có chỗ cho nút **Sửa tour**. Bấm tên/ảnh mở chi tiết và báo giá; sửa là thao tác riêng. Rà cả danh sách, chi tiết và editor ở 320/390/768/1440px.
+- Tư vấn dùng phiên bản: kiểm tra trước và trong UPDATE, từ chối bản cũ/cạnh tranh/trạng thái quay lại giá trị cũ bằng 409; UI tải lại và yêu cầu người dùng kiểm tra, không tự gửi lại thay đổi. Migration `0005_inquiry_version.sql` chỉ thêm `version INTEGER NOT NULL DEFAULT 1`. Kiểm tra nâng cấp D1/SQLite giữ nguyên các trường nghiệp vụ, khóa ngoại và mở lại an toàn; lịch sử migration cũ không đổi.
+- Portal không còn danh mục 13 tour tham khảo, bộ lọc/số đếm/ghi chú của danh mục hoặc dữ liệu catalog trong public response. Điều hành tải `/api/catalog` một lần khi mở và dùng lại trong phiên. Workspace chỉ truy vấn các mảng role được đọc. Mẫu JSON tách riêng phần catalog giảm 9.377 byte/lần đọc; đây là giảm payload, không phải số đo 4G hay SLA.
+- Tìm kiếm công việc/tư vấn dùng chuẩn hóa tiếng Việt không dấu. Nút Excel công nợ ghi rõ toàn bộ; PDF ghi rõ theo bộ lọc. Chức năng khảo sát/hướng dẫn/AI/xác minh email/đo bài thử đã gỡ không được đưa lại.
+- `npm test`: **104/104** đạt trên SQLite và **104/104** với libSQL. Build Vite và Pages đạt. Schema D1 qua `npm run db:generate` khớp migration đã kiểm tra, không phát sinh thay đổi thêm.
+- Bảy browser suites đạt trên build local: `ui`, `v05-ui`, `cp4-ui`, `cp4-delivery-ui`, `ux051-ui`, `performance-ui`, `stability-ui`. Kiểm tra tour/task/tư vấn/B2B/import, phân quyền/CSV/log tester, mạng chậm/offline/lỗi xuất, tải XLSX thật và bản in PDF. Bài mới xác nhận tư vấn stale409 không tự retry, tìm không dấu và catalog chỉ tải một lần. Tài khoản QA tách riêng và xóa sau thử; không tính là tester thật.
+- Runtime commit/tag, kết quả CI và triển khai public được ghi sau khi hoàn tất phát hành. Các mục phía dưới là lịch sử theo phiên bản, không dùng chỉ dẫn UI cũ làm hướng dẫn hiện hành.
 
 ## Rút gọn giao diện 0.7.2 — 29/10/2026
 

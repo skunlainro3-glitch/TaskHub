@@ -4,6 +4,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Plus,
+  Pencil,
   Search,
   MapPin,
   CalendarDays,
@@ -15,12 +16,7 @@ import {
   RefreshCw,
   SlidersHorizontal,
   CheckCircle2,
-  AlertCircle,
   Send,
-  Mail,
-  Handshake,
-  CheckCheck,
-  Inbox,
 } from "lucide-react";
 import { TourMedia, TourImageCredit } from "./tour-media.jsx";
 import { SyncStatus } from "./sync-status.jsx";
@@ -46,7 +42,7 @@ export function createPortalUI({
   date,
   todayVN,
 }) {
-  function TourCard({ tour, onOpen, internal = false, onSeats, onTask }) {
+  function TourCard({ tour, onOpen, internal = false, onEdit, onSeats, onTask }) {
     const remaining = tour.capacity - tour.reserved;
     const departed = tour.departure < todayVN();
     return (
@@ -110,8 +106,18 @@ export function createPortalUI({
               </Badge>
             </div>
           )}
-          {(onSeats || onTask) && (
+          {(onEdit || onSeats || onTask) && (
             <div className="tour-quick-actions">
+              {onEdit && (
+                <Button
+                  variant="ghost"
+                  data-track="tour:edit"
+                  onClick={() => onEdit(tour)}
+                >
+                  <Pencil size={15} />
+                  Sửa tour
+                </Button>
+              )}
               {onSeats && (
                 <Button
                   variant="ghost"
@@ -141,47 +147,6 @@ export function createPortalUI({
 
   function CatalogImage({ tour }) {
     return <TourMedia tour={tour} />;
-  }
-
-  function CatalogCard({ tour, onOpen }) {
-    return (
-      <article className="tour-card catalog-card" data-track-entity={tour.id}>
-        <button
-          className="cover-button"
-          aria-label={"Xem " + tour.title}
-          onClick={() => onOpen(tour)}
-        >
-          <CatalogImage tour={tour} />
-          <span className="cover-pill">
-            <MapPin size={12} />
-            {tour.destination}
-          </span>
-        </button>
-        <div className="tour-card-body">
-          <div className="catalog-kicker">
-            <span>{tour.code}</span>
-            <Badge tone="blue">Tham khảo</Badge>
-          </div>
-          <div className="eyebrow">{tour.duration}</div>
-          <button className="card-title" onClick={() => onOpen(tour)}>
-            {tour.title}
-            <ArrowUpRight size={19} />
-          </button>
-          <p>{tour.route}</p>
-          <div className="catalog-departure">
-            <CalendarDays size={15} />
-            <span>{tour.departureNote} · Chưa chốt ngày</span>
-          </div>
-          <div className="tour-meta catalog-price">
-            <span>Giá tham khảo</span>
-            <strong>
-              {tour.price === null ? "Liên hệ" : money(tour.price)}
-              {tour.price !== null && <small>/ khách</small>}
-            </strong>
-          </div>
-        </div>
-      </article>
-    );
   }
 
   function CatalogDetails({ tour, source, onClose, onUse }) {
@@ -340,12 +305,7 @@ export function createPortalUI({
       [to, setTo] = useState(""),
       [availableOnly, setAvailableOnly] = useState(false),
       [selected, setSelected] = useState(null),
-      [reference, setReference] = useState(null),
       [lastSuccess, setLastSuccess] = useState(null);
-    const [catalogOpen, setCatalogOpen] = useState(false);
-    useEffect(() => {
-      if (query || destination) setCatalogOpen(true);
-    }, [query, destination]);
     const load = useCallback(async () => {
       const request = ++latest.current;
       pending.current += 1;
@@ -369,14 +329,12 @@ export function createPortalUI({
       if (user && user.workspace === workspace)
         api("/events", "POST", { action: "portal_viewed" }).catch(() => {});
     }, [workspace, user?.id, user?.workspace]);
-    const allTours = [...(data?.tours || []), ...(data?.catalog?.tours || [])];
+    const allTours = data?.tours || [];
     const schedule = { from, to, availableOnly };
     const scheduleActive = hasScheduleFilters(schedule);
     const filtersActive = Boolean(query || destination || scheduleActive);
     const invalidRange = Boolean(from && to && from > to);
     const matches = (tour) => matchesTourSearch(tour, query, destination);
-    const referenceMatches = (data?.catalog?.tours || []).filter(matches);
-    const references = scheduleActive ? [] : referenceMatches;
     const visible = (data?.tours || []).filter(
       (tour) => matches(tour) && matchesTourSchedule(tour, schedule),
     );
@@ -386,7 +344,6 @@ export function createPortalUI({
       setFrom("");
       setTo("");
       setAvailableOnly(false);
-      setCatalogOpen(false);
     }
     const open = (t) => {
       setSelected(t);
@@ -507,9 +464,6 @@ export function createPortalUI({
               <div className="portal-results">
                 <p role="status" aria-live="polite">
                   {visible.length} tour có lịch
-                  {!scheduleActive && references.length > 0
-                    ? ` · ${references.length} hành trình tham khảo`
-                    : ""}
                 </p>
                 {filtersActive && (
                   <Button
@@ -522,24 +476,6 @@ export function createPortalUI({
                   </Button>
                 )}
               </div>
-            )}
-            {scheduleActive && referenceMatches.length > 0 && (
-              <p className="reference-filter-note">
-                {referenceMatches.length} hành trình tham khảo chưa có ngày hoặc
-                số chỗ xác nhận nên không nằm trong kết quả lọc lịch.{" "}
-                <button
-                  type="button"
-                  className="text-btn"
-                  onClick={() => {
-                    setFrom("");
-                    setTo("");
-                    setAvailableOnly(false);
-                    setCatalogOpen(true);
-                  }}
-                >
-                  Xem danh mục tham khảo
-                </button>
-              </p>
             )}
             <ErrorBox error={error} />
             {error && (
@@ -568,7 +504,7 @@ export function createPortalUI({
                   ))}
                 </div>
               </div>
-            ) : data && !references.length ? (
+            ) : data ? (
               <Empty
                 title={
                   filtersActive
@@ -581,65 +517,10 @@ export function createPortalUI({
                   : "Tour chỉ xuất hiện tại đây sau khi người quản lý nhập thông tin và chọn công khai."}
               </Empty>
             ) : null}
-            {!!references.length && (
-              <div className="reference-catalog">
-                <div className="catalog-heading">
-                  <div>
-                    <div className="eyebrow blue">DỮ LIỆU TOUR TỪ ÉN VIỆT</div>
-                    <h3>Tour quốc tế tham khảo</h3>
-                  </div>
-                  <span>{references.length} hành trình</span>
-                </div>
-                <p className="catalog-intro">
-                  Tham khảo tuyến đi, điểm nổi bật và giá. Ngày khởi hành và số
-                  chỗ cần được xác nhận riêng.
-                </p>
-                <Button
-                  variant="ghost"
-                  aria-expanded={catalogOpen}
-                  aria-controls="reference-tour-list"
-                  data-track="portal:toggle-reference"
-                  onClick={() => setCatalogOpen((open) => !open)}
-                >
-                  {catalogOpen
-                    ? "Thu gọn danh mục tham khảo"
-                    : "Xem " + references.length + " hành trình tham khảo"}
-                </Button>
-                <div id="reference-tour-list" hidden={!catalogOpen}>
-                  {catalogOpen && (
-                    <>
-                      <div className="tour-grid">
-                        {references.map((t) => (
-                          <CatalogCard
-                            key={t.id}
-                            tour={t}
-                            onOpen={setReference}
-                          />
-                        ))}
-                      </div>
-                      <p className="catalog-attribution">
-                        Nguồn:{" "}
-                        <a
-                          href={data.catalog.source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {data.catalog.source.name}
-                        </a>{" "}
-                        · Ghi nhận {date(data.catalog.source.capturedOn)}. Thông
-                        tin tham khảo có thể thay đổi.
-                      </p>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
             <div className="portal-notice">
               <ShieldCheck size={17} />
               <p>
-                Tour có lịch và số chỗ được công khai từ điều hành.
-                {data?.catalog &&
-                  " Danh mục Én Việt là thông tin tham khảo."}{" "}
+                Tour có lịch và số chỗ được công khai từ điều hành.{" "}
                 Yêu cầu tư vấn không giữ chỗ và không tạo thanh toán.
               </p>
             </div>
@@ -649,13 +530,6 @@ export function createPortalUI({
           <Logo />
           <span>Lịch trình · Giá tour · Yêu cầu tư vấn</span>
         </footer>
-        {reference && (
-          <CatalogDetails
-            tour={reference}
-            source={data.catalog.source}
-            onClose={() => setReference(null)}
-          />
-        )}
         {selected &&
           ((data?.tours || []).some((t) => t.id === selected.id) ? (
             <TourDetails
@@ -684,7 +558,7 @@ export function createPortalUI({
     );
   }
 
-  function TourDetails({ tour, workspace, onClose, notify, readOnly = false }) {
+  function TourDetails({ tour, workspace, onClose, notify, readOnly = false, internal = false, onEdit }) {
     const [booking, setBooking] = useState(false),
       [busy, setBusy] = useState(false),
       [sent, setSent] = useState(false),
@@ -824,7 +698,19 @@ export function createPortalUI({
           Thông tin do người quản lý tour cung cấp. Chi tiết dịch vụ cần được
           xác nhận trước khi đặt tour.
         </p>
-        {readOnly ? (
+        {internal ? (
+          <div className="modal-actions">
+            <Button variant="ghost" onClick={onClose}>
+              Đóng
+            </Button>
+            {onEdit && (
+              <Button data-track="tour:edit" onClick={() => onEdit(tour)}>
+                <Pencil size={16} />
+                Sửa tour
+              </Button>
+            )}
+          </div>
+        ) : readOnly ? (
           <p className="workspace-notice">
             Chế độ xem. Vai trò hiện tại không chỉnh sửa thông tin tour.
           </p>

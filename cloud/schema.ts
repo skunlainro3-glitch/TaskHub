@@ -25,7 +25,7 @@ export const tasks = sqliteTable('tasks', {
 export const inquiries = sqliteTable('inquiries', {
   id: text('id').primaryKey(),workspace: requiredText('workspace').references(() => workspaces.id,{onDelete:'cascade'}),
   tour_id: requiredText('tour_id').references(() => tours.id,{onDelete:'cascade'}),name: requiredText('name'),email: requiredText('email'),people: requiredInteger('people'),
-  note: requiredText('note'),status: requiredText('status'),created: requiredText('created'),consent_version: requiredText('consent_version'),
+  note: requiredText('note'),status: requiredText('status'),created: requiredText('created'),consent_version: requiredText('consent_version'),version: requiredInteger('version').default(1),
 });
 export const events = sqliteTable('events', {
   id: text('id').primaryKey(),user_id: requiredText('user_id').references(() => users.id,{onDelete:'cascade'}),action: requiredText('action'),entity: requiredText('entity'),created: requiredText('created'),

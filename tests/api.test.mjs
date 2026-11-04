@@ -224,17 +224,20 @@ test("MVP: consent, isolation, seat sync, concurrency, exports, persistence and 
       assert.deepEqual((await request('/public/'+ws)).body.tours, []);
       assert.deepEqual((await request('/public/agency')).body.tours, []);
     });
-    await t.test('reference catalog is available without creating offers or accepting unconfirmed bookings', async () => {
+    await t.test('reference catalog is operator-only and absent from public and polling data', async () => {
       const root = (await request('/public/agency')).body;
-      assert.equal(root.catalog.tours.length,13);
-      assert.equal(root.catalog.tours.find(t=>t.code==='EVG-TQ11').price,null);
-      assert.equal((await request('/public/'+ws)).body.catalog,null);
+      assert.equal(Object.hasOwn(root,'catalog'),false);
+      assert.equal(Object.hasOwn((await request('/public/'+ws)).body,'catalog'),false);
+      assert.equal((await request('/catalog')).status,401);
+      const catalog = (await request('/catalog','GET',null,ac)).body;
+      assert.equal(catalog.tours.length,13);
+      assert.equal(catalog.tours.find(t=>t.code==='EVG-TQ11').price,null);
       const own = (await request('/workspace','GET',null,ac)).body;
-      assert.equal(own.catalog.tours.length,13);
+      assert.equal(Object.hasOwn(own,'catalog'),false);
       assert.deepEqual(own.tours,[]);
       assert.ok(own.activity.every(e => e.action === 'test_started'));
       assert.equal((await request('/public/agency/inquiries','POST',{
-        tour_id:root.catalog.tours[0].id,name:'QA',email:'qa@example.test',people:1,consent:true
+        tour_id:catalog.tours[0].id,name:'QA',email:'qa@example.test',people:1,consent:true
       })).status,404);
       assert.equal((await request('/tours','POST',{...qaTour,departure:'Hàng tuần',capacity:null},ac)).status,400);
     });
@@ -422,6 +425,27 @@ test("MVP: consent, isolation, seat sync, concurrency, exports, persistence and 
         );
       },
     );
+    await t.test('inquiry versions prevent stale, duplicate, concurrent and cycled-status overwrites', async () => {
+      const state = async () => (await request('/workspace','GET',null,ac)).body.inquiries[0];
+      const original = await state();
+      assert.equal(original.version,1);
+      const path = '/inquiries/' + original.id;
+      assert.equal((await request(path,'PATCH',{status:'closed'},ac)).status,400);
+      assert.equal((await request(path,'PATCH',{status:'closed',version:original.version},bc)).status,404);
+      assert.equal((await request(path,'PATCH',{status:'closed',version:original.version+1},ac)).status,409);
+      const race = await Promise.all(['contacted','closed'].map(status => request(path,'PATCH',{status,version:original.version},ac)));
+      assert.deepEqual(race.map(r=>r.status).sort(),[200,409]);
+      const first = await state();
+      assert.equal(first.version,2);
+      assert.equal((await request(path,'PATCH',{status:'new',version:original.version},ac)).status,409);
+      assert.equal((await state()).status,first.status,'Rejected stale write preserves the saved status');
+      assert.equal((await request(path,'PATCH',{status:'new',version:first.version},ac)).status,200);
+      const cycled = await state();
+      assert.equal(cycled.status,original.status);
+      assert.equal(cycled.version,3);
+      assert.equal((await request(path,'PATCH',{status:'closed',version:original.version},ac)).status,409,'Returning to the same status must not make an old snapshot current');
+      assert.equal((await state()).version,3);
+    });
     const feedback = {
       portal: 4,
       operations: 5,

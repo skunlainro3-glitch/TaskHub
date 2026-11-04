@@ -329,6 +329,9 @@ test("role API blocks direct writes/exports, scopes planning and refreshes permi
     assert.deepEqual((await state(actors.sales)).pooling, []);
     assert.deepEqual((await state(actors.sales)).poolingHistory, []);
     assert.deepEqual((await state(actors.accounting)).inquiries, []);
+    for (const actor of [actors.sales,actors.accounting])
+      assert.equal((await request('/catalog','GET',null,actor.cookie)).status,403);
+    assert.equal((await request('/catalog','GET',null,actors.operations.cookie)).status,200);
     assert.equal((await request('/analytics','GET')).status,401);
     const salesReport=await request('/analytics?from=2026-01-01&to=2026-12-31','GET',null,actors.sales.cookie);
     assert.equal(salesReport.status,200);assert.equal(salesReport.body.pooling,null);assert.equal(salesReport.body.ledger,null);
@@ -344,7 +347,7 @@ test("role API blocks direct writes/exports, scopes planning and refreshes permi
         await request(
           "/inquiries/" + lead.id,
           "PATCH",
-          { status: "contacted" },
+          { status: "contacted", version: lead.version },
           actors.sales.cookie,
         )
       ).status,

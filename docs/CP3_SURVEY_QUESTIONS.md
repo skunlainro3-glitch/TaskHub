@@ -33,7 +33,7 @@ Danh sách tính năng, bước thử và giới hạn từng luồng nằm tron
 
 ## Thông báo đồng ý
 
-Nhóm TaskHub thu email, vai trò, quy mô doanh nghiệp, phản hồi và thao tác thử MVP để đánh giá CP3. Tham gia tự nguyện; bạn có thể dừng. Dữ liệu chỉ dành cho nhóm và giảng viên, không công khai email; lưu tối đa khoảng 6 tháng. Không nhập dữ liệu khách hàng thật. Có thể xóa tài khoản/dữ liệu trong Hướng dẫn của MVP; với bản khảo sát/CSV đã xuất, liên hệ người mời khảo sát để yêu cầu xóa. Bạn đồng ý tham gia không?
+Nhóm TaskHub thu email, vai trò, quy mô doanh nghiệp, phản hồi và thao tác thử MVP để đánh giá CP3. Tham gia tự nguyện; bạn có thể dừng. Dữ liệu chỉ dành cho nhóm và giảng viên, không công khai email; lưu tối đa khoảng 6 tháng. Không nhập dữ liệu khách hàng thật. Có thể xóa tài khoản/dữ liệu trong Tài khoản & nhóm của MVP; với bản khảo sát/CSV đã xuất, liên hệ người mời khảo sát để yêu cầu xóa. Bạn đồng ý tham gia không?
 
 ## Đối chiếu dữ liệu
 
@@ -51,6 +51,6 @@ Lưu mốc consent/thử/đánh giá theo ISO có múi giờ, ví dụ dạng `Y
 
 - Log UI: `ui_click`/`ui_change`; mã nút, khu vực, thời gian thiết bị nằm trong `entity`; `created` là thời gian server. Không lưu nội dung gõ hoặc mật khẩu. Khi mất mạng, log có thể thiếu.
 - Log nghiệp vụ xác nhận tour/việc/phiếu thực sự được lưu. Không dùng số click để kết luận luồng hoàn tất hoặc để đếm người thật.
-- App 0.4 và Sheet cùng đánh giá 6 nhóm tính năng, tách tự dùng/xem demo/chưa thử và ý định theo từng tính năng. Bản cũ đo hữu ích ba tính năng và độ dễ dùng chung được giữ riêng; không tự chuyển điểm cũ thành điểm quan trọng/dễ dùng theo tính năng.
-- Quản trị/reviewer tải **Người thử CSV** và **Đánh giá tính năng CSV** từ app 0.4 để chạy `survey:report`; chúng dùng đúng schema Raw_testers/Raw_features. CSV phản hồi bản trước vẫn dành cho `research:report`. Không cộng số email ở hai nguồn để đếm cá nhân.
+- Bản app 0.4 từng thu 6 nhóm tính năng; từ 0.7.2 form và API gửi đánh giá đã gỡ. Nhóm thu mới bằng khảo sát bên ngoài, giữ riêng các thang đo và đợt thử. Không tự chuyển điểm hữu ích ba tính năng cũ thành điểm quan trọng/dễ dùng theo tính năng.
+- Quản trị/reviewer vào **Tài khoản & nhóm → Dữ liệu kiểm thử**, mở **Bản xuất khảo sát đã lưu** để tải CSV Người thử/Đánh giá tính năng lịch sử khi được cấp quyền. Chúng dùng schema Raw_testers/Raw_features cho `survey:report`; CSV phản hồi bản trước dành cho `research:report`. Không cộng số email ở hai nguồn để đếm cá nhân hoặc dùng dữ liệu lịch sử như phản hồi mới.
 - Sheet/CSV raw giữ riêng; repo chỉ chứa câu hỏi, hướng dẫn và schema trống. Nhóm đọc ý kiến mở, nêu cỡ mẫu từng tính năng rồi mới quyết định giá và Iterate/Persevere.

@@ -740,7 +740,7 @@ export function createOperationsUI({
               data-track="pooling:print"
             >
               <Printer size={16} />
-              In / lưu công nợ PDF
+              In / lưu công nợ PDF (theo bộ lọc)
             </Button>
             <a
               className="btn ghost"
@@ -751,12 +751,13 @@ export function createOperationsUI({
               aria-disabled={exporting}
             >
               <Download size={16} />
-              {exporting ? "Đang tải Excel…" : "Công nợ Excel"}
+              {exporting ? "Đang tải Excel…" : "Công nợ Excel (toàn bộ)"}
             </a>
             <a
               className="btn ghost"
               href="/api/pooling/export"
               data-track="pooling:export"
+              title="Xuất toàn bộ phiếu trong không gian"
             >
               <Download size={16} />
               Đối soát CSV
@@ -765,6 +766,7 @@ export function createOperationsUI({
               className="btn ghost"
               href="/api/pooling/history/export"
               data-track="pooling:history-export"
+              title="Xuất toàn bộ lịch sử đối soát trong không gian"
             >
               <History size={16} />
               Lịch sử CSV
