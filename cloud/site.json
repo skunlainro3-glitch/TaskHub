@@ -1,9 +1,9 @@
 {
   "project_id": "appgprj_6ad0126b16248191ac4c95b63367bcc5",
   "url": "https://taskhub.ninaninohihi.chatgpt.site",
-  "source_commit": "4896d0f4886d9b0967da65b32bb96fd94d8cac2e",
-  "saved_version_id": "appgprj_6ad0126b16248191ac4c95b63367bcc5~appgver_7a94cf83bbd88191ae0e466a1c90f7e9",
-  "deployment_id": "appgdep_6aeb513c386c8191911db15592aaaac6",
+  "source_commit": "aec62087c8bb0366f91460a5c9885b10757eb19e",
+  "saved_version_id": "appgprj_6ad0126b16248191ac4c95b63367bcc5~appgver_4825be9468d48191aa2319a910209cf5",
+  "deployment_id": "appgdep_6aeb53be73d88191bd9b7558957211ba",
   "access_mode": "public",
   "database": "Existing D1 binding DB; schema-only migration 0005 adds inquiry version; original business fields preserved",
   "verified_on": "2026-11-04"

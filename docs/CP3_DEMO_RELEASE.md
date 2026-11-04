@@ -6,7 +6,7 @@ Cập nhật 04/11/2026: dùng [hướng dẫn demo CP4 0.7.3](CP4_DEMO_0_7_3.md
 - Code làm việc trên `build`; `dev` để chủ repo duyệt.
 - Tag cố định mã nguồn, không khóa dữ liệu live. Dùng workspace demo riêng, không chia sẻ tài khoản đó cho tester.
 - Tag CP3 `demo-cp3-0.4.1-2026-10-19`, `demo-cp3-0.4-2026-10-18` và `demo-cp3-2026-10-18` chỉ là mốc lịch sử; không di chuyển hoặc dùng làm hướng dẫn giao diện hiện tại.
-- Các tag CP4 đã phát hành, gồm `cp4-demo-v0.7.2`, giữ nguyên làm mốc dự phòng. Chỉ chọn `cp4-demo-v0.7.3` sau khi tag và kết quả phát hành được ghi trong VALIDATION.
+- Các tag CP4 đã phát hành giữ nguyên làm mốc dự phòng. Bản demo hiện hành là `cp4-demo-v0.7.3-final`; commit và kết quả phát hành được ghi trong VALIDATION.
 
 Đọc [P1–P3/S-1–S-4](CP2_FEATURE_MAP.md) để giải thích phạm vi, [khảo sát bên ngoài và lưu raw](CP3_TESTING_GUIDE.md) để đối chiếu người thử. Bảng đối chiếu là tài liệu bàn giao, không phải một menu trong sản phẩm hiện tại.
 

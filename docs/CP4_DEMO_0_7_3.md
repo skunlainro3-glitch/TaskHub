@@ -1,6 +1,6 @@
 # TaskHub CP4 — demo bản 0.7.3
 
-Ngày phát hành: **04/11/2026**. Phạm vi: FE/BE, triển khai và bàn giao. Bản demo cố định ở tag `cp4-demo-v0.7.3` gồm runtime `98612cd` và tài liệu/metadata phát hành bổ sung; CI runtime và kiểm tra production đạt, kết quả tại [VALIDATION](VALIDATION.md). Không di chuyển tag 0.7.2 hoặc các tag dự phòng đã phát hành.
+Ngày phát hành: **04/11/2026**. Phạm vi: FE/BE, triển khai và bàn giao. Bản demo cuối cố định ở tag `cp4-demo-v0.7.3-final` gồm runtime `a90491c` và tài liệu/metadata phát hành bổ sung; CI và kiểm tra production đạt, kết quả tại [VALIDATION](VALIDATION.md). Bản cuối sửa khoảng cách ghi công ảnh sau khi rà ảnh chụp mobile. Không di chuyển tag 0.7.3, 0.7.2 hoặc các tag dự phòng đã phát hành.
 
 Web: https://taskhub-travel.pages.dev/ · Điều hành: https://taskhub-travel.pages.dev/app · Code: https://github.com/skunlainro3-glitch/TaskHub/tree/build. `dev` giữ để chủ repo duyệt.
 

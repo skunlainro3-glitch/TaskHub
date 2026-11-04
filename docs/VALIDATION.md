@@ -2,6 +2,7 @@
 
 ## Bản ổn định 0.7.3 — 04/11/2026
 
+- **Bản chốt hiện hành:** runtime `a90491c18a2709857ea97c24436547b7b5a61c17`, tag `cp4-demo-v0.7.3-final` gồm code và tài liệu phát hành. Chỉnh thêm khoảng cách ghi công ảnh để không đè lên mép ảnh; đã xem lại ảnh chụp mobile và chạy lại delivery UI trên public đạt. [CI 41861017750](https://github.com/skunlainro3-glitch/TaskHub/actions/runs/41861017750) đạt đúng runtime cuối. Sites version **23**, source `aec62087c8bb0366f91460a5c9885b10757eb19e`, deployment `appgdep_6aeb53be73d88191bd9b7558957211ba`; Pages `525ce1ae-f6ea-436b-8682-2d326f9f6a2b`. Không đổi API/schema sau bản đầu dưới đây. Đối chiếu checksum nghiệp vụ sau bản chốt vẫn đạt; env/audience/D1 giữ nguyên.
 - Đối chiếu lại CP4, rubric, Timeline hiện tại và mã nguồn trước khi sửa. Tính năng MVP, cải thiện tùy chọn và phần cần bằng chứng ngoài web được tách tại [bàn giao demo](CP4_DEMO_0_7_3.md). Chưa xác nhận toàn bộ CP4 hoặc chấp thuận Path 2.
 - Sửa tràn ngang Quản lý tour ở 320px: hàng nút tự xuống dòng, thao tác nhanh có chỗ cho nút **Sửa tour**. Bấm tên/ảnh mở chi tiết và báo giá; sửa là thao tác riêng. Rà cả danh sách, chi tiết và editor ở 320/390/768/1440px.
 - Tư vấn dùng phiên bản: kiểm tra trước và trong UPDATE, từ chối bản cũ/cạnh tranh/trạng thái quay lại giá trị cũ bằng 409; UI tải lại và yêu cầu người dùng kiểm tra, không tự gửi lại thay đổi. Migration `0005_inquiry_version.sql` chỉ thêm `version INTEGER NOT NULL DEFAULT 1`. Kiểm tra nâng cấp D1/SQLite giữ nguyên các trường nghiệp vụ, khóa ngoại và mở lại an toàn; lịch sử migration cũ không đổi.

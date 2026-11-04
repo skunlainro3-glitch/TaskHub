@@ -52,7 +52,7 @@ Mở http://127.0.0.1:5173. Frontend dùng port 5173; API port 3001. Dừng bằ
 - Nếu chuyển sang máy khác: cài Node.js **24 LTS**, chạy `npm ci` trước. Không dùng Node 18/20 vì backend dùng `node:sqlite`.
 - Dữ liệu nằm trong `data/taskhub.sqlite` (và tệp WAL/SHM khi chạy). `data/` và `.env` đã được bỏ khỏi Git.
 
-Để dùng đúng code demo sau khi tag đã phát hành, chạy `git fetch --tags` rồi `git switch --detach cp4-demo-v0.7.3`, `npm ci` và `npm run dev`. Tag cố định code, không khóa dữ liệu live; dùng workspace demo riêng. Muốn tiếp tục sửa code thì `git switch build`. Giữ nguyên tag cũ.
+Để dùng đúng code demo, chạy `git fetch --tags` rồi `git switch --detach cp4-demo-v0.7.3-final`, `npm ci` và `npm run dev`. Tag cố định code, không khóa dữ liệu live; dùng workspace demo riêng. Muốn tiếp tục sửa code thì `git switch build`. Các tag trước giữ nguyên làm dự phòng.
 
 ## Phạm vi MVP
 

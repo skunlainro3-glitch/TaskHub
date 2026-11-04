@@ -48,7 +48,7 @@ Bảng đọc trực tiếp ngày 04/11 chỉ còn tab Timeline: Tuấn 19/24/32
 4. Mở sẵn Báo cáo vận hành đúng kỳ ngày khởi hành của tour. Thử nút In và tải Excel trước giờ trình bày. Tắt thông báo cá nhân trên máy.
 5. Dùng tag/bản phát hành đã kiểm tra; kiểm tra link public và bản local. Chạy local bằng Node 24+, `npm ci`, tạo `.env` từ `.env.example` với mật khẩu quản trị riêng, `npm run dev`. Có thể dùng bộ mẫu tùy chọn trong workspace trống.
 
-Tag `cp4-demo-v0.7.2`, `cp4-demo-v0.7.1` và `cp4-demo-v0.7.0` giữ nguyên làm mốc dự phòng. Chỉ chọn `cp4-demo-v0.7.3` sau khi commit/tag/deployment được xác nhận trong VALIDATION. Không tự di chuyển tag cũ hoặc coi tập demo/ghép slide đã hoàn tất chỉ vì code đã phát hành.
+Các tag cũ, gồm `cp4-demo-v0.7.3`, giữ nguyên làm mốc dự phòng. Bản demo hiện hành dùng `cp4-demo-v0.7.3-final`; commit và deployment được xác nhận trong VALIDATION. Không tự di chuyển tag cũ hoặc coi tập demo/ghép slide đã hoàn tất chỉ vì code đã phát hành.
 
 ## Demo live 6 phút
 
