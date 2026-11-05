@@ -4,7 +4,7 @@ services:
     name: taskhub
     runtime: node
     repo: https://github.com/skunlainro3-glitch/TaskHub
-    branch: dev
+    branch: main
     plan: free
     region: singapore
     numInstances: 1

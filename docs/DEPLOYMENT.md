@@ -4,7 +4,7 @@
 
 ## Cấu hình
 
-`render.yaml` chạy FE React và BE Node.js 24 trên **Render Free**, nhánh `dev`,
+`render.yaml` chạy FE React và BE Node.js 24 trên **Render Free**, nhánh `main`,
 region Singapore, HTTPS và health check `/api/health`. Database **Turso Free**
 lưu riêng. `REQUIRE_REMOTE_DB=1` khiến server từ chối khởi động nếu thiếu
 database cloud; không vô tình ghi khảo sát vào ổ đĩa tạm.
@@ -15,8 +15,8 @@ Không tự import dữ liệu khảo sát CP2 hoặc dữ liệu local lên clo
 
 ## 1. Tài khoản
 
-GitHub repo dùng `dev` làm nhánh mặc định được bảo vệ và `main` là nhánh team sửa; mở PR `main → dev` để chủ repo duyệt trước khi phát hành.
-Nhánh `dev` yêu cầu review của `@skunlainro3-glitch`, CI `Validate` và giải quyết comment.
+GitHub repo dùng `main` làm nhánh chính, mặc định và được bảo vệ; `dev` là nhánh team sửa; mở PR `dev → main` để chủ repo duyệt trước khi phát hành.
+Nhánh `main` yêu cầu review của `@skunlainro3-glitch`, CI `Validate` và giải quyết comment.
 CI chạy thủ công trên tài khoản mới đã thành công ở run `38620884849`, commit
 `22f3f24`. PR #1 được chủ repo duyệt và đã merge theo yêu cầu trực tiếp ngày
 15/10. Không quy lỗi billing của run trên tài khoản cũ cho tài khoản mới.
@@ -42,7 +42,7 @@ tra SDK phù hợp; không tự chuyển engine của database đang có dữ li
 
 ## 3. Web Render
 
-1. New → Blueprint → kết nối repo `skunlainro3-glitch/TaskHub` → chọn nhánh **dev**.
+1. New → Blueprint → kết nối repo `skunlainro3-glitch/TaskHub` → chọn nhánh **main**.
 2. Render đọc `render.yaml`. Xác minh web service **Free**, không có disk
    trả phí và không có database Render trả phí. Tổng tiền dự kiến phải là $0.
 3. Điền `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` từ Turso.
@@ -53,7 +53,7 @@ tra SDK phù hợp; không tự chuyển engine của database đang có dữ li
    Render cấp. Tên URL thực tế có thể khác tên service; không tự đoán URL.
 
 Nếu Blueprint không có lựa chọn Free, tạo **New → Web Service** thủ công:
-repo TaskHub, branch dev, runtime Node, region Singapore, instance Free,
+repo TaskHub, branch main, runtime Node, region Singapore, instance Free,
 build `npm ci --no-audit --no-fund && npm run build`, start
 `node server/index.mjs`, health `/api/health`. Sao chép các biến trong
 `render.yaml` vào Environment rồi thêm giá trị riêng của tài khoản.

@@ -2,7 +2,7 @@
 
 Cập nhật 04/11/2026. Tài liệu CP3 cũ được rút gọn để tránh hướng dẫn thao tác trên các màn đã xóa. Trạng thái hiện hành và kịch bản nằm ở [Demo CP4 0.7.3](CP4_DEMO_0_7_3.md), [bàn giao Tuấn/Huy](CP4_TUAN_HUY_HANDOFF.md), [P1–P3/S-1–S-4](CP2_FEATURE_MAP.md) và [VALIDATION](VALIDATION.md).
 
-Web: https://taskhub-travel.pages.dev/ · Code làm việc: https://github.com/skunlainro3-glitch/TaskHub/tree/main. Mở PR `main → dev` để chủ repo duyệt; `dev` vẫn là nhánh mặc định được bảo vệ, không tự review/merge vào `dev` trong đợt này.
+Web: https://taskhub-travel.pages.dev/ · Code làm việc: https://github.com/skunlainro3-glitch/TaskHub/tree/dev. Mở PR `dev → main` để chủ repo duyệt; `main` là nhánh chính, mặc định và được bảo vệ, team không push thẳng vào `main`.
 
 ## Phần FE/BE để chứng minh
 

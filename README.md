@@ -1,6 +1,6 @@
 # TaskHub — MVP điều hành tour
 
-Bản ổn định **0.7.3** đã phát hành ngày **04/11/2026**. Dùng [hướng dẫn demo CP4](docs/CP4_DEMO_0_7_3.md) cho luồng hiện tại, bản local dự phòng và bảng yêu cầu. Commit/tag/deployment đã kiểm chứng được ghi tại [VALIDATION](docs/VALIDATION.md). Nhánh làm việc của nhóm là `main` (đổi tên từ `build`); tạo pull request `main` → `dev` để chủ repo duyệt. `dev` vẫn là nhánh mặc định.
+Bản ổn định **0.7.3** đã phát hành ngày **04/11/2026**. Dùng [hướng dẫn demo CP4](docs/CP4_DEMO_0_7_3.md) cho luồng hiện tại, bản local dự phòng và bảng yêu cầu. Commit/tag/deployment đã kiểm chứng được ghi tại [VALIDATION](docs/VALIDATION.md). Nhóm làm việc trên `dev`, sau đó tạo pull request `dev` → `main` để chủ repo duyệt. `main` là nhánh chính, mặc định và được bảo vệ; chỉ phát hành mã đã được duyệt.
 
 Các đoạn mô tả 0.7.2/0.7.0/0.6.0 bên dưới là lịch sử thay đổi; hướng dẫn thao tác hiện hành nằm trong tài liệu CP4 trên.
 
@@ -33,7 +33,7 @@ Lịch sử bàn giao nền tảng: [bản 0.5](docs/RELEASE_0_5.md) và [bản 
 Cài Git và Node.js **24 trở lên**, rồi mở terminal:
 
 ```powershell
-git clone --branch main https://github.com/skunlainro3-glitch/TaskHub.git
+git clone --branch dev https://github.com/skunlainro3-glitch/TaskHub.git
 cd TaskHub
 npm ci
 Copy-Item -LiteralPath .env.example -Destination .env
@@ -52,17 +52,19 @@ Mở http://127.0.0.1:5173. Frontend dùng port 5173; API port 3001. Dừng bằ
 - Nếu chuyển sang máy khác: cài Node.js **24 LTS**, chạy `npm ci` trước. Không dùng Node 18/20 vì backend dùng `node:sqlite`.
 - Dữ liệu nằm trong `data/taskhub.sqlite` (và tệp WAL/SHM khi chạy). `data/` và `.env` đã được bỏ khỏi Git.
 
-Để dùng đúng code demo, chạy `git fetch --tags` rồi `git switch --detach cp4-demo-v0.7.3-final`, `npm ci` và `npm run dev`. Tag cố định code, không khóa dữ liệu live; dùng workspace demo riêng. Muốn tiếp tục sửa code thì `git switch main`. Các tag trước giữ nguyên làm dự phòng.
+Để dùng đúng code demo, chạy `git fetch --tags` rồi `git switch --detach cp4-demo-v0.7.3-final`, `npm ci` và `npm run dev`. Tag cố định code, không khóa dữ liệu live; dùng workspace demo riêng. Muốn tiếp tục sửa code thì `git switch dev`. Các tag trước giữ nguyên làm dự phòng.
 
-Nếu đã clone nhánh `build` trước khi đổi tên, sau khi lưu/commit phần đang làm, chạy:
+Nếu đã clone theo hướng dẫn cũ, lưu/commit phần đang làm trước, rồi chuyển sang nhánh làm việc:
 
 ```powershell
-git branch -m build main
 git fetch origin --prune
-git branch --set-upstream-to=origin/main main
+git switch dev
+git pull --ff-only origin dev
 ```
 
-Các lệnh `npm run build`, `npm run build:pages` và nhãn production `dev` của Cloudflare Pages giữ nguyên; chúng không phải tên nhánh làm việc của nhóm.
+Không đổi tên nhánh `main` trên máy: đó là nhánh chính. Nhánh `build` cũ đã được đổi tên thành `main` trên GitHub.
+
+Các lệnh `npm run build`, `npm run build:pages` và nhãn production `dev` của Cloudflare Pages giữ nguyên. Nhãn hosting không quyết định nhánh Git được phát hành; nguồn phát hành là `main` đã được duyệt.
 
 ## Phạm vi MVP
 

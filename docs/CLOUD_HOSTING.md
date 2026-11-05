@@ -10,13 +10,13 @@ FE/BE chạy trên hosting Sites (Cloudflare Workers); dữ liệu nằm trong D
 
 ## Chạy và sửa code
 
-Team clone nhánh `main`, dùng Node.js 24, `npm ci`, `npm run dev`, mở http://127.0.0.1:5173. Bản local vẫn dùng SQLite; cloud có database riêng. Dữ liệu local/CP2 không được tự chuyển lên cloud. `.env`, database, CSV và secrets không nằm trong Git.
+Team clone nhánh `dev`, dùng Node.js 24, `npm ci`, `npm run dev`, mở http://127.0.0.1:5173. Bản local vẫn dùng SQLite; cloud có database riêng. Dữ liệu local/CP2 không được tự chuyển lên cloud. `.env`, database, CSV và secrets không nằm trong Git.
 
 `src/main.jsx`, `src/styles.css`, `server/index.mjs`, `server/db.mjs` là nguồn FE/BE chính. `scripts/export-sites.mjs` tạo UI và API cho checkout Sites đã chuẩn bị; adapter dùng D1 batch để ghi nguyên tử. Ghi tour có phiên bản; event chỉ ghi khi cập nhật thành công. Đăng ký trùng đồng thời không tạo workspace thừa. Không thay đổi stack chạy local của team.
 
 ## Phát hành bản tiếp theo
 
-Chủ repo duyệt PR `main → dev` trước khi phát hành; `dev` vẫn là nhánh mặc định được bảo vệ. GitHub và Sites có repository nguồn riêng: merge GitHub không tự deploy Sites.
+Chủ repo duyệt PR `dev → main` trước khi phát hành; `main` là nhánh chính, mặc định và được bảo vệ. GitHub và Sites có repository nguồn riêng: merge GitHub không tự deploy Sites.
 
 1. Dùng lại checkout Sites hiện có tại `C:/Users/ACER/Documents/Codex/TaskHub-Cloud` trên máy chủ repo; giữ `.openai/hosting.json` và toàn bộ lịch sử `drizzle/`. ID/URL/version đang chạy được ghi trong `cloud/site.json`; không tạo Site/database mới chỉ để cập nhật.
 2. Từ thư mục TaskHub, chạy `npm run cloud:export -- "C:/Users/ACER/Documents/Codex/TaskHub-Cloud"`.

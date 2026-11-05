@@ -2,7 +2,7 @@
 
 **Web công khai:** https://taskhub-travel.pages.dev/ — phát hành từ ngày 15/10/2026 trên Cloudflare Pages Free. Project `taskhub-travel`, production branch `dev` là nhãn môi trường Pages, không tự merge nhánh Git `dev`; deployment/SHA ở `cloud/pages/deployment.json`. Backend tiếp tục cùng project và database D1, chỉ thêm migration cần thiết; version/ID/SHA hiện tại ở `cloud/site.json`.
 
-Team làm việc trên Git `main`, mở PR `main → dev` để chủ repo duyệt; `dev` vẫn là nhánh mặc định được bảo vệ. Lệnh Pages dùng `--branch dev` bên dưới giữ nguyên nhãn production.
+Team làm việc trên Git `dev`, mở PR `dev → main` để chủ repo duyệt; `main` là nhánh chính, mặc định và được bảo vệ. Lệnh Pages dùng `--branch dev` bên dưới giữ nguyên nhãn production.
 
 Pages phục vụ giao diện React/Vite của repo. `/api/*` đi qua gateway có chữ ký tới backend Sites hiện tại; dữ liệu vẫn ở cùng D1. Không tạo database thứ hai hoặc nhập/xóa dữ liệu khảo sát khi đổi địa chỉ. Cả Pages và backend đều chạy trên cloud, độc lập với máy chủ repo. URL cũ vẫn truy cập được; đăng nhập lại khi chuyển sang hostname mới vì cookie được giới hạn theo hostname.
 
@@ -29,7 +29,7 @@ Pages phục vụ giao diện React/Vite của repo. `/api/*` đi qua gateway c�
 
 5. Kiểm tra trên URL production https://taskhub-travel.pages.dev/: đăng ký → sửa tour → cổng khách hàng → gửi yêu cầu → công việc → phản hồi; kiểm tra reviewer và CSV. Chạy `npm run test:cloud` với `TEST_URL` trỏ tới Pages và admin/reviewer credentials lấy từ môi trường private. Dọn tài khoản QA của mình sau kiểm thử. Gửi link production cho nhóm/người khảo sát; hostname deployment riêng phục vụ truy vết vận hành.
 
-Direct Upload không chuyển trực tiếp sang Git integration được. Có thể dùng GitHub Actions + Wrangler để deploy nhánh `dev` đã duyệt, hoặc chọn Git integration ngay từ đầu nếu chủ tài khoản muốn cấp quyền ứng dụng GitHub. Không cần mua domain, thêm thẻ hoặc nâng gói để làm bước này.
+Direct Upload không chuyển trực tiếp sang Git integration được. Có thể dùng GitHub Actions + Wrangler để deploy nhánh Git `main` đã duyệt (giữ nhãn production Pages là `dev`), hoặc chọn Git integration ngay từ đầu nếu chủ tài khoản muốn cấp quyền ứng dụng GitHub. Không cần mua domain, thêm thẻ hoặc nâng gói để làm bước này.
 
 ## Bảo vệ đường API
 

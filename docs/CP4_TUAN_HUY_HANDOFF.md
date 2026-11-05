@@ -16,7 +16,7 @@ Rà lại bản **0.7.1**: kiểm tra chức năng thực tế, sửa bảo vệ
 
 | Người / STT Timeline | Việc giao | Kết quả FE/BE và bàn giao |
 | --- | --- | --- |
-| Huy — 4 | Danh sách kỹ thuật, nhánh làm việc | Mã làm việc trên `main`, có checklist/tài liệu này và mã nguồn tách module. Mở PR `main → dev` để chủ repo duyệt; `dev` vẫn là nhánh mặc định được bảo vệ. |
+| Huy — 4 | Danh sách kỹ thuật, nhánh làm việc | Mã làm việc trên `dev`, có checklist/tài liệu này và mã nguồn tách module. Mở PR `dev → main` để chủ repo duyệt; `main` là nhánh chính, mặc định và được bảo vệ. |
 | Huy — 8 | Role Sales, Điều hành, Giám đốc | Đã có Kinh doanh, Điều hành, Kế toán, Quản lý, Chủ không gian, chỉ xem và người đánh giá. Menu/nút/API/CSV/XLSX áp dụng quyền; đổi quyền có hiệu lực ở request kế tiếp. Chủ không gian vẫn cần chọn bộ phận cho nhân viên thực tế. |
 | Huy — 12 | PDF/Excel công nợ và báo giá | B2B: **Công nợ Excel** xuất `.xlsx` toàn không gian; **In / lưu công nợ PDF** theo bộ lọc đang xem. Tour: bấm tên/ảnh để xem chi tiết → **Báo giá Excel** hoặc **In / lưu báo giá PDF**; **Sửa tour** là thao tác riêng. Không tích hợp ngân hàng, không tạo hóa đơn hoặc xác nhận booking. |
 | Tuấn — 19 | Ảnh 4G, dashboard | WebP 480/960px cho 3 ảnh đang có; bỏ tải lại 13 nguồn ảnh 404, giữ minh họa có nhãn. Thêm **Báo cáo vận hành** lọc ngày, biểu đồ lịch tour/khách đã giữ, công việc/tư vấn và công nợ theo quyền. |

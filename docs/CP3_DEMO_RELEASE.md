@@ -3,7 +3,7 @@
 Cập nhật 04/11/2026: dùng [hướng dẫn demo CP4 0.7.3](CP4_DEMO_0_7_3.md), [bàn giao Tuấn/Huy](CP4_TUAN_HUY_HANDOFF.md) và [VALIDATION](VALIDATION.md) để biết commit/tag/deployment đã kiểm chứng. Hướng dẫn mở Phản hồi MVP, Hướng dẫn hoặc đo bài thử của bản CP3 cũ không còn áp dụng.
 
 - Web: https://taskhub-travel.pages.dev/
-- Code làm việc trên `main`, mở PR `main → dev` để chủ repo duyệt; `dev` vẫn là nhánh mặc định được bảo vệ.
+- Code làm việc trên `dev`, mở PR `dev → main` để chủ repo duyệt; `main` là nhánh chính, mặc định và được bảo vệ.
 - Tag cố định mã nguồn, không khóa dữ liệu live. Dùng workspace demo riêng, không chia sẻ tài khoản đó cho tester.
 - Tag CP3 `demo-cp3-0.4.1-2026-10-19`, `demo-cp3-0.4-2026-10-18` và `demo-cp3-2026-10-18` chỉ là mốc lịch sử; không di chuyển hoặc dùng làm hướng dẫn giao diện hiện tại.
 - Các tag CP4 đã phát hành giữ nguyên làm mốc dự phòng. Bản demo hiện hành là `cp4-demo-v0.7.3-final`; commit và kết quả phát hành được ghi trong VALIDATION.

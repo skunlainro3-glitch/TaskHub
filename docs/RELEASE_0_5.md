@@ -30,10 +30,10 @@ Backend Sites version 10, source `33c2390b811afc3b99f3b99af2d79de27bba1e24d`; Pa
 ## Khi bạn cùng nhóm clone
 
 ```powershell
-git clone --branch main https://github.com/skunlainro3-glitch/TaskHub.git
+git clone --branch dev https://github.com/skunlainro3-glitch/TaskHub.git
 cd TaskHub
 npm ci
 npm run dev
 ```
 
-Cài Node.js 24 trước. Mở http://127.0.0.1:5173; dữ liệu local tách khỏi production. Hướng dẫn mã ở [CODE_GUIDE](CODE_GUIDE.md). Quy trình nhánh hiện hành: làm việc trên `main`, mở PR `main → dev` để chủ repo duyệt; `dev` vẫn là nhánh mặc định được bảo vệ, tag cũ giữ nguyên.
+Cài Node.js 24 trước. Mở http://127.0.0.1:5173; dữ liệu local tách khỏi production. Hướng dẫn mã ở [CODE_GUIDE](CODE_GUIDE.md). Quy trình nhánh hiện hành: làm việc trên `dev`, mở PR `dev → main` để chủ repo duyệt; `main` là nhánh chính, mặc định và được bảo vệ, tag cũ giữ nguyên.

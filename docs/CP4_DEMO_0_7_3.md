@@ -2,7 +2,7 @@
 
 Ngày phát hành: **04/11/2026**. Phạm vi: FE/BE, triển khai và bàn giao. Bản demo cuối cố định ở tag `cp4-demo-v0.7.3-final` gồm runtime `a90491c` và tài liệu/metadata phát hành bổ sung; CI và kiểm tra production đạt, kết quả tại [VALIDATION](VALIDATION.md). Bản cuối sửa khoảng cách ghi công ảnh sau khi rà ảnh chụp mobile. Không di chuyển tag 0.7.3, 0.7.2 hoặc các tag dự phòng đã phát hành.
 
-Web: https://taskhub-travel.pages.dev/ · Điều hành: https://taskhub-travel.pages.dev/app · Code: https://github.com/skunlainro3-glitch/TaskHub/tree/main. Team làm việc trên `main`, mở PR `main → dev` để chủ repo duyệt; `dev` vẫn là nhánh mặc định được bảo vệ.
+Web: https://taskhub-travel.pages.dev/ · Điều hành: https://taskhub-travel.pages.dev/app · Code: https://github.com/skunlainro3-glitch/TaskHub/tree/dev. Team làm việc trên `dev`, mở PR `dev → main` để chủ repo duyệt; `main` là nhánh chính, mặc định và được bảo vệ.
 
 ## Phạm vi và bằng chứng
 
@@ -25,7 +25,7 @@ Thông báo giảng viên về pre-approval Path 2 là điều kiện nhóm ph�
 | Tuấn 19 | Xong | Có ảnh WebP và dashboard. Chưa coi tối ưu ảnh là phép đo 4G thật. |
 | Tuấn 24, 38 | Xong | Sheet đánh dấu freeze mềm 30/10 và freeze 03/11 xong. Bản sửa lỗi cần chốt commit/tag mới sau kiểm tra; không sửa lịch sử tag. |
 | Tuấn 32 | Xong | Có kịch bản 6 phút; trạng thái sheet không tự chứng minh đã tập trực tiếp đủ thời gian. |
-| Huy 4, 8, 12 | Chưa làm | Nhánh làm việc `main`, phân vai và xuất PDF/XLSX có trong mã nguồn. Nhóm đối chiếu checklist với sản phẩm, không dùng ô chưa đánh dấu làm bằng chứng thiếu chức năng. |
+| Huy 4, 8, 12 | Chưa làm | Nhánh làm việc `dev`, phân vai và xuất PDF/XLSX có trong mã nguồn. Nhóm đối chiếu checklist với sản phẩm, không dùng ô chưa đánh dấu làm bằng chứng thiếu chức năng. |
 | Huy 29 | Chưa làm | Có nội dung nháp MVP Demo/Solving Pains/Innovation trong bàn giao; chưa có bằng chứng đã ghép và duyệt deck. |
 
 Không chỉnh bảng phân công trong đợt code này. Các mốc 30/10 và 03/11 đã qua; chỉ ghi đúng nguồn trạng thái, không gọi là mốc tương lai hoặc tự xác nhận công việc con người.
