@@ -12,10 +12,11 @@ Ngày: **09/11/2026**. Phạm vi: frontend, backend, triển khai và bàn giao.
 | Trình duyệt: mẫu công việc / Việc của tôi | Đạt; thử tạo/sửa/ngừng dùng, hạn theo ngày đi, gửi lặp, xung đột và lọc đúng tài khoản ở 320/390/768/1440px. |
 | Hồi quy giao diện | 7 bộ kiểm thử cũ đạt; cập nhật nhãn trường nhập tên và bước báo giá trong quy trình. |
 | Worker/D1 local | Hai bộ trình duyệt báo giá và mẫu công việc đều đạt trên bản Worker thực tế. Migration 0006 không đổi dữ liệu cũ; xóa nhân viên giữ nguyên tên công việc. |
-| CI, commit/tag phát hành | Đang chờ chốt sau các kiểm tra. |
-| Website public | Đang chờ triển khai và xác nhận; URL hiện có vẫn là https://taskhub-travel.pages.dev/. |
+| CI, commit phát hành | Commit tính năng `66b2b257095fd525c44bc932f3ce8bc2b76cb9c9`; CI push `42506881237` và CI PR `42506940336` đều đạt. [PR #9](https://github.com/skunlainro3-glitch/TaskHub/pull/9) chờ chủ repo duyệt vào `main`. |
+| Website public | Đã triển khai và kiểm tra tại https://taskhub-travel.pages.dev/; hai bộ browser mới và cloud API đều đạt. Tài khoản QA đã xóa. Metadata deployment trong `cloud/`. |
+| Dữ liệu nhóm | Đối chiếu trước/sau khớp toàn bộ trường nghiệp vụ cũ: 3 tour, 3 việc, 3 B2B, 2 yêu cầu và 7 lịch sử B2B. |
 
-Đọc [VALIDATION](VALIDATION.md) và metadata trong `cloud/` để đối chiếu chứng cứ phát hành. Chỉ cập nhật các dòng chờ sau khi có kết quả thực tế. Các tag 0.7.3, trong đó có `cp4-demo-v0.7.3-final`, giữ nguyên làm dự phòng; không chuyển tag cũ sang commit mới.
+Đọc [VALIDATION](VALIDATION.md) và metadata trong `cloud/` để đối chiếu chứng cứ phát hành. Tag `v0.8.0` cố định mã tính năng đã kiểm tra; tag không khóa dữ liệu live. Các tag 0.7.3, trong đó có `cp4-demo-v0.7.3-final`, giữ nguyên làm dự phòng; không chuyển tag cũ sang commit mới.
 
 Nhóm sửa và push lên **`dev`**, sau đó mở PR **`dev` → `main`** để chủ repo duyệt. `main` là nhánh chính, mặc định và được bảo vệ. Nhãn production `dev` của Pages là nhãn hosting riêng, không quyết định nhánh Git được phát hành.
 

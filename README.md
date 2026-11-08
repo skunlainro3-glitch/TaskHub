@@ -1,6 +1,6 @@
 # TaskHub — MVP điều hành tour
 
-Bản **0.8.0 — 09/11/2026** bổ sung báo giá theo số khách có bước duyệt, bộ mẫu công việc theo tour và bộ lọc **Việc của tôi** theo tài khoản. Xem [cách dùng, kiểm tra và trạng thái phát hành 0.8.0](docs/RELEASE_0_8_0.md). Việc triển khai public đang chờ kiểm tra cuối; không coi mã đã viết là bằng chứng đã phát hành. Nhóm làm việc trên `dev`, sau đó tạo pull request `dev` → `main` để chủ repo duyệt. `main` là nhánh chính, mặc định và được bảo vệ; chỉ phát hành mã đã được duyệt.
+Bản **0.8.0 — 09/11/2026** đã triển khai và kiểm tra tại https://taskhub-travel.pages.dev/, bổ sung báo giá theo số khách có bước duyệt, bộ mẫu công việc theo tour và bộ lọc **Việc của tôi** theo tài khoản. Xem [cách dùng và kiểm tra 0.8.0](docs/RELEASE_0_8_0.md). Mã mới trên `dev`, [PR #9](https://github.com/skunlainro3-glitch/TaskHub/pull/9) chờ chủ repo duyệt vào `main`; cả hai CI của commit tính năng đã đạt. `main` là nhánh chính, mặc định và được bảo vệ; team không push thẳng vào nhánh này.
 
 Bản **0.7.3** đã phát hành ngày **04/11/2026**, có [hướng dẫn demo CP4 dự phòng](docs/CP4_DEMO_0_7_3.md). Giữ nguyên các tag đã phát hành. Commit/tag/deployment đã kiểm chứng được ghi tại [VALIDATION](docs/VALIDATION.md).
 
