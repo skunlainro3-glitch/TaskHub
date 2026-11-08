@@ -45,6 +45,8 @@ jobs:
           TEST_URL=http://127.0.0.1:3001 node tests/ux051-ui.mjs
           TEST_URL=http://127.0.0.1:3001 node tests/performance-ui.mjs
           TEST_URL=http://127.0.0.1:3001 node tests/stability-ui.mjs
+          TEST_URL=http://127.0.0.1:3001 node tests/quotes-ui.mjs
+          TEST_URL=http://127.0.0.1:3001 node tests/task-templates-ui.mjs
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

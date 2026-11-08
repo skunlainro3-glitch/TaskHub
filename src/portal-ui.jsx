@@ -685,6 +685,7 @@ export function createPortalUI({
             Báo giá Excel
           </Button>
         </div>
+        {internal && <p className="muted">Các tệp trên là thông tin tour và giá một khách. Báo giá theo đoàn được lập và duyệt tại mục Báo giá.</p>}
         <h3>Lịch trình dự kiến</h3>
         <div className="itinerary">
           {tour.itinerary.split("\n").map((line, i) => (

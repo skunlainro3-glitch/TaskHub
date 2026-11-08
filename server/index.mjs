@@ -3,6 +3,9 @@ import { createAccounts, deleteAccount, canManageTeam, workspacePermission } fro
 import { loadDemoWorkspace } from './demo.mjs';
 import { workspaceAccess, requireCapability } from '../shared/access.mjs';
 import { loadPlanning, savePlanning } from './planning.mjs';
+import { listQuotes, getQuote, createQuote, updateQuote, transitionQuote, quoteExportData } from './quotes.mjs';
+import { quoteRows } from '../shared/quotes.mjs';
+import { listTaskPeople, listTaskTemplates, createTaskTemplate, updateTaskTemplate, previewTaskTemplate, applyTaskTemplate, resolveTaskAssignee } from './task-templates.mjs';
 import { loadAnalytics } from './analytics.mjs';
 import { analyticsRows } from '../shared/analytics.mjs';
 import { tableXlsx, xlsxMime } from '../shared/xlsx.mjs';
@@ -302,6 +305,15 @@ function tourInput(b) {
     b.published === true ? 1 : 0,
   ];
 }
+// Check linked membership in the statement that writes, not only in the picker.
+// A deleted employee must not turn a stale assignment into a database error.
+function taskAssigneeGuard(workspace, id) {
+  return {
+    sql: `(? IS NULL OR EXISTS(SELECT 1 FROM users au WHERE au.id=? AND au.workspace=? AND au.role!='reviewer'
+      AND (au.role!='staff' OR EXISTS(SELECT 1 FROM workspace_members am WHERE am.user_id=au.id AND am.workspace=au.workspace))))`,
+    args: [id, id, workspace],
+  };
+}
 export const server = http.createServer(async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -331,7 +343,7 @@ export const server = http.createServer(async (req, res) => {
     }
     if (p === "/api/health") {
       await db.prepare("SELECT 1").get();
-      return json(res, { ok: true, version: "0.7.3" });
+      return json(res, { ok: true, version: "0.8.0" });
     }
     // The in-app feedback forms are retired; historical rows remain exportable.
     if (['/api/feedback','/api/feedback/features'].includes(p)) fail('Không tìm thấy API.',404);
@@ -365,6 +377,30 @@ export const server = http.createServer(async (req, res) => {
       }
     }
     if (p==='/api/planning' && method==='GET') return json(res,await loadPlanning(db,await required(req)));
+    if (p === '/api/quotes' && method === 'GET') return json(res, await listQuotes(db, await required(req)));
+    if (p === '/api/quotes' && method === 'POST') return json(res, await createQuote(db, await required(req), await body(req)), 201);
+    const quoteExport = p.match(/^\/api\/quotes\/([^/]+)\/(export\.xlsx|export-data)$/);
+    if (quoteExport && method === 'GET') {
+      const result = await quoteExportData(db, await required(req), quoteExport[1]);
+      if (quoteExport[2] === 'export-data') return json(res, result);
+      return downloadXlsx(res, {name:'Bao gia da duyet', headers:['Thông tin','Nội dung'], rows:quoteRows(result.quote), widths:[30,90]}, 'taskhub-approved-quote');
+    }
+    const quoteMatch = p.match(/^\/api\/quotes\/([^/]+)$/);
+    if (quoteMatch && method === 'GET') return json(res, await getQuote(db, await required(req), quoteMatch[1]));
+    if (quoteMatch && method === 'PUT') return json(res, await updateQuote(db, await required(req), quoteMatch[1], await body(req)));
+    if (quoteMatch && method === 'PATCH') return json(res, await transitionQuote(db, await required(req), quoteMatch[1], await body(req)));
+    if (p === '/api/task-people' && method === 'GET') return json(res, await listTaskPeople(db, await required(req)));
+    if (p === '/api/task-templates' && method === 'GET') return json(res, await listTaskTemplates(db, await required(req)));
+    if (p === '/api/task-templates' && method === 'POST') return json(res, await createTaskTemplate(db, await required(req), await body(req)), 201);
+    const templateAction = p.match(/^\/api\/task-templates\/([^/]+)\/(preview|apply)$/);
+    if (templateAction && method === 'POST') {
+      const u = await required(req), input = await body(req);
+      return json(res, templateAction[2] === 'preview'
+        ? await previewTaskTemplate(db, u, templateAction[1], input)
+        : await applyTaskTemplate(db, u, templateAction[1], input));
+    }
+    const templateMatch = p.match(/^\/api\/task-templates\/([^/]+)$/);
+    if (templateMatch && method === 'PUT') return json(res, await updateTaskTemplate(db, await required(req), templateMatch[1], await body(req)));
     if (['/api/analytics','/api/analytics/export.xlsx'].includes(p) && method==='GET') {
       const u=await required(req);
       const report=await loadAnalytics(db,u,{from:url.searchParams.get('from')??undefined,to:url.searchParams.get('to')??undefined});
@@ -666,26 +702,19 @@ export const server = http.createServer(async (req, res) => {
         .get(b.tour_id, u.workspace);
       if (!tour) fail("Tour không tồn tại.", 404);
       const id = randomUUID();
+      const assigned = await resolveTaskAssignee(db, u, b);
       const title = text(b.title, "công việc", 160),
-        assignee = text(b.assignee, "người phụ trách", 80),
+        assignee = assigned.assignee,
         due = date(b.due),
         priority = choice(b.priority, ["normal", "high"], "ưu tiên");
-      await transaction(db, async () => {
-        await db
-          .prepare("INSERT INTO tasks(id,workspace,tour_id,title,assignee,due,priority,status,created) VALUES (?,?,?,?,?,?,?,?,?)")
-          .run(
-            id,
-            u.workspace,
-            tour.id,
-            title,
-            assignee,
-            due,
-            priority,
-            "todo",
-            now(),
-          );
-        await log(u, "task_created", id);
-      });
+      const guard = taskAssigneeGuard(u.workspace, assigned.assignee_id);
+      const result = await db.batch([
+        [`INSERT INTO tasks(id,workspace,tour_id,title,assignee,due,priority,status,created,assignee_id)
+          SELECT ?,?,?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM tours WHERE id=? AND workspace=?) AND ${guard.sql}`,
+          [id,u.workspace,tour.id,title,assignee,due,priority,'todo',now(),assigned.assignee_id,tour.id,u.workspace,...guard.args]],
+        ...(['admin','reviewer','staff'].includes(u.role)?[]:[['INSERT INTO events SELECT ?,?,?,?,? WHERE changes()=1',[randomUUID(),u.id,'task_created',id,now()]]]),
+      ]);
+      if (!result[0].changes) fail('Tour hoặc người phụ trách đã thay đổi. Tải lại trước khi giao việc.',409);
       return json(res, { id }, 201);
     }
     const taskMatch = p.match(/^\/api\/tasks\/([^/]+)$/);
@@ -703,9 +732,11 @@ export const server = http.createServer(async (req, res) => {
     if (taskMatch && method === 'PUT') {
       const u=await required(req),b=await body(req);
       integer(b.version,'phiên bản',1,1000000000);
-      const title=text(b.title,'công việc',160),assignee=text(b.assignee,'người phụ trách',80),due=date(b.due),priority=choice(b.priority,['normal','high'],'ưu tiên'),status=choice(b.status,['todo','doing','done'],'trạng thái');
+      const assigned=await resolveTaskAssignee(db,u,b);
+      const title=text(b.title,'công việc',160),assignee=assigned.assignee,due=date(b.due),priority=choice(b.priority,['normal','high'],'ưu tiên'),status=choice(b.status,['todo','doing','done'],'trạng thái');
       if (!await db.prepare('SELECT id FROM tours WHERE id=? AND workspace=?').get(b.tour_id,u.workspace)) fail('Tour không tồn tại.',404);
-      const result=await db.batch([['UPDATE tasks SET tour_id=?,title=?,assignee=?,due=?,priority=?,status=?,version=version+1 WHERE id=? AND workspace=? AND version=?',[b.tour_id,title,assignee,due,priority,status,taskMatch[1],u.workspace,b.version]],...(['admin','reviewer','staff'].includes(u.role)?[]:[['INSERT INTO events SELECT ?,?,?,?,? WHERE changes()=1',[randomUUID(),u.id,'task_updated',taskMatch[1],now()]]])]);
+      const guard=taskAssigneeGuard(u.workspace,assigned.assignee_id);
+      const result=await db.batch([[`UPDATE tasks SET tour_id=?,title=?,assignee=?,assignee_id=?,due=?,priority=?,status=?,version=version+1 WHERE id=? AND workspace=? AND version=? AND EXISTS(SELECT 1 FROM tours WHERE id=? AND workspace=?) AND ${guard.sql}`,[b.tour_id,title,assignee,assigned.assignee_id,due,priority,status,taskMatch[1],u.workspace,b.version,b.tour_id,u.workspace,...guard.args]],...(['admin','reviewer','staff'].includes(u.role)?[]:[['INSERT INTO events SELECT ?,?,?,?,? WHERE changes()=1',[randomUUID(),u.id,'task_updated',taskMatch[1],now()]]])]);
       if (!result[0].changes) fail('Công việc đã thay đổi hoặc không còn tồn tại. Tải lại trước khi sửa.',409);
       return json(res,{ok:true});
     }

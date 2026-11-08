@@ -21,6 +21,7 @@ export const tasks = sqliteTable('tasks', {
   id: text('id').primaryKey(), workspace: requiredText('workspace').references(() => workspaces.id,{onDelete:'cascade'}),
   tour_id: requiredText('tour_id').references(() => tours.id,{onDelete:'cascade'}),title: requiredText('title'),assignee: requiredText('assignee'),
   due: requiredText('due'),priority: requiredText('priority'),status: requiredText('status'),created: requiredText('created'),version:requiredInteger('version').default(1),
+  assignee_id: text('assignee_id').references(() => users.id, {onDelete:'set null'}),
 });
 export const inquiries = sqliteTable('inquiries', {
   id: text('id').primaryKey(),workspace: requiredText('workspace').references(() => workspaces.id,{onDelete:'cascade'}),
@@ -77,3 +78,30 @@ export const workspacePlanning = sqliteTable('workspace_planning', {
   workspace:text('workspace').primaryKey().references(()=>workspaces.id,{onDelete:'cascade'}),payload:requiredText('payload'),
   version:requiredInteger('version').default(1),updated:requiredText('updated'),updated_by:text('updated_by').references(()=>users.id,{onDelete:'set null'}),
 });
+export const taskTemplates = sqliteTable('task_templates', {
+  id: text('id').primaryKey(), workspace: requiredText('workspace').references(() => workspaces.id, {onDelete:'cascade'}),
+  name: requiredText('name'), entries: requiredText('entries'), archived: requiredInteger('archived').default(0),
+  version: requiredInteger('version').default(1), created: requiredText('created'), updated: requiredText('updated'),
+}, t => [index('task_templates_workspace').on(t.workspace)]);
+export const taskTemplateRuns = sqliteTable('task_template_runs', {
+  id: text('id').primaryKey(), workspace: requiredText('workspace').references(() => workspaces.id, {onDelete:'cascade'}),
+  template_id: text('template_id').references(() => taskTemplates.id, {onDelete:'set null'}),
+  tour_id: text('tour_id').references(() => tours.id, {onDelete:'cascade'}),
+  template_version: requiredInteger('template_version'), tour_version: requiredInteger('tour_version'), token: requiredText('token'),
+  created_by: text('created_by').references(() => users.id, {onDelete:'set null'}), created: requiredText('created'),
+}, t => [index('task_template_runs_workspace').on(t.workspace)]);
+export const quotes = sqliteTable('quotes', {
+  id: text('id').primaryKey(), workspace: requiredText('workspace').references(() => workspaces.id, {onDelete:'cascade'}),
+  tour_id: text('tour_id').references(() => tours.id, {onDelete:'set null'}), payload: requiredText('payload'), total: requiredInteger('total'),
+  status: requiredText('status'), version: requiredInteger('version').default(1),
+  created_by: text('created_by').references(() => users.id, {onDelete:'set null'}),
+  reviewed_by: text('reviewed_by').references(() => users.id, {onDelete:'set null'}), reviewed_at: text('reviewed_at'),
+  created: requiredText('created'), updated: requiredText('updated'),
+}, t => [index('quotes_workspace').on(t.workspace), check('quote_total', sql`${t.total} >= 0`), check('quote_status', sql`${t.status} IN ('draft','pending','approved','rejected')`)]);
+export const quoteAudit = sqliteTable('quote_audit', {
+  id: text('id').primaryKey(), workspace: requiredText('workspace').references(() => workspaces.id, {onDelete:'cascade'}),
+  quote_id: requiredText('quote_id').references(() => quotes.id, {onDelete:'cascade'}),
+  actor_id: text('actor_id').references(() => users.id, {onDelete:'set null'}), actor_name: requiredText('actor_name'),
+  action: requiredText('action'), from_status: requiredText('from_status'), to_status: requiredText('to_status'),
+  version: requiredInteger('version'), total: requiredInteger('total'), payload: requiredText('payload'), note: requiredText('note'), created: requiredText('created'),
+}, t => [index('quote_audit_quote').on(t.quote_id)]);

@@ -34,6 +34,10 @@ Các đường dẫn dưới đây tính từ thư mục gốc repo.
 | `src/demo-ui.jsx`, `src/demo.css` | Nạp bộ mẫu giả lập tùy chọn vào không gian trống. |
 | `src/tour-media.jsx` | Ảnh minh họa có nguồn và xử lý ảnh lỗi. |
 | `src/operations-ui.jsx` | Biểu mẫu Excel/CSV, đổi số khách và ghép tour B2B. |
+| `src/quotes-ui.jsx`, `src/quotes.css` | Báo giá theo số khách, gửi duyệt, lịch sử và xuất bản đã duyệt. Chức năng xuất thông tin tour cũ vẫn ở `portal-ui.jsx`. |
+| `shared/quotes.mjs`, `server/quotes.mjs` | Kiểm tra số tiền, trạng thái, quyền duyệt và bản chụp nội dung báo giá; ghi phiên bản/lịch sử và chống tạo trùng. |
+| `src/task-templates-ui.jsx`, `src/task-templates.css` | Tạo bộ mẫu từ quy trình nhóm nhập, xem trước và thêm nhiều việc cho tour. |
+| `shared/task-templates.mjs`, `server/task-templates.mjs` | Mốc hạn tương đối, kiểm tra người phụ trách và áp dụng bộ mẫu một lần theo mã tạo. |
 | `src/accounts-ui.jsx` | Tài khoản, lời mời, quyền nhân viên; xuất log/lịch sử theo quyền và tự xóa tài khoản. Form khảo sát và màn Hướng dẫn trong web đã gỡ ở 0.7.2. |
 | `src/styles.css`, `src/portal-filters.css`, `src/operations-polish.css`, `src/accounts.css` | Màu, khoảng cách, bố cục và cách hiển thị trên điện thoại. `experience.css` đã được xóa. |
 | `src/api.mjs` | Hàm gọi HTTP của trình duyệt; tập trung xử lý lỗi và thời gian chờ. |
@@ -57,6 +61,7 @@ Các đường dẫn dưới đây tính từ thư mục gốc repo.
 | `server/feature-feedback.mjs` | Đọc/phân tích/xuất phản hồi sáu nhóm tính năng đã lưu; không còn API gửi phản hồi mới. |
 | `server/db.mjs`, `server/connection.mjs` | Khởi tạo bảng local và lớp truy vấn database. |
 | `server/pooling-triggers.sql` | Quy tắc giữ/hoàn chỗ và bảo vệ sổ B2B ở database. |
+| `server/productivity-schema.sql` | Bảng bổ sung cho báo giá, lịch sử và bộ mẫu công việc của bản 0.8.0; không chứa dữ liệu nghiệp vụ điền sẵn. |
 | `catalog/enviet-tours.json` | Danh mục nội dung tour tham khảo có nguồn; không phải tồn kho mở bán. |
 | `tests/` | Kiểm tra nghiệp vụ/API, CSV, gateway và luồng trình duyệt. |
 | `scripts/` | Chạy local, xuất nguồn cloud, build, sao lưu và tổng hợp CSV. |
@@ -86,13 +91,18 @@ Frontend giúp nhập dễ hơn; backend mới quyết định dữ liệu có �
 | `GET /api/workspace` | Lấy tour, việc, tư vấn và B2B trong không gian của tài khoản. |
 | `POST /api/tours`; `PUT`, `DELETE /api/tours/:id` | Tạo, sửa, xóa tour. |
 | `POST /api/tasks`; `PUT`, `PATCH`, `DELETE /api/tasks/:id` | Tạo, sửa, đổi trạng thái, xóa công việc. |
+| `GET /api/task-people` | Danh sách mã/tên tài khoản phụ trách cùng workspace; không trả email. |
+| `GET`, `POST /api/task-templates`; `PUT /api/task-templates/:id` | Đọc, tạo, sửa hoặc ngừng dùng bộ mẫu. |
+| `POST /api/task-templates/:id/preview`, `/apply` | Tính hạn để xem trước, rồi tạo việc có kiểm tra phiên bản và mã lần tạo. |
+| `GET`, `POST /api/quotes`; `GET`, `PUT`, `PATCH /api/quotes/:id` | Danh sách/chi tiết, tạo/sửa nháp và chuyển trạng thái báo giá. |
+| `GET /api/quotes/:id/export.xlsx`, `/export-data` | Xuất Excel hoặc lấy nội dung chuẩn cho PDF; API chỉ cho bản đã duyệt. |
 | `POST /api/tours/import` | Kiểm tra/xem trước hoặc lưu một đợt nhập. |
 | `POST /api/pooling`; `PATCH /api/pooling/:id` | Tạo phiếu và thực hiện xác nhận/ghi nhận thu/hủy. |
 | `GET /api/pooling/export`, `/api/pooling/history/export` | Xuất sổ B2B/lịch sử trong workspace. |
 | `POST /api/interactions` | Lưu mã thao tác của tài khoản tester đã đồng ý; không thu nội dung gõ. API gửi feedback cũ đã gỡ. |
 | `GET /api/research`, `/api/export/*` | Tổng hợp và xuất nghiên cứu theo quyền quản trị/reviewer. |
 
-`:id` và `:workspace` là giá trị thay vào URL, không phải chữ gửi nguyên. Reviewer có quyền xem/xuất, không sửa dữ liệu. Nhân viên có lời mời và quyền chỉ xem/được sửa; đối tác B2B chưa có tài khoản tự duyệt; trường người phụ trách hiện là tên nhập.
+`:id` và `:workspace` là giá trị thay vào URL, không phải chữ gửi nguyên. Reviewer có quyền xem/xuất, không sửa dữ liệu. Nhân viên có lời mời và quyền chỉ xem/được sửa; đối tác B2B chưa có tài khoản tự duyệt. Công việc mới có thể gắn `assignee_id`; tên nhập tay cũ vẫn được giữ để đối chiếu.
 
 ## 4. Hiểu các bảng dữ liệu
 
@@ -101,7 +111,9 @@ Frontend giúp nhập dễ hơn; backend mới quyết định dữ liệu có �
 | `workspaces` | Không gian dữ liệu riêng của từng tài khoản dùng thử; `agency` là không gian điều hành demo. |
 | `users`, `sessions` | Tài khoản, đồng ý tham gia và phiên đăng nhập. |
 | `tours` | Ngày, giá, sức chứa, khách đã giữ, nội dung và trạng thái công khai. |
-| `tasks` | Công việc gắn một tour, người phụ trách, hạn, ưu tiên và trạng thái. |
+| `tasks` | Công việc gắn một tour, tên phụ trách, tài khoản `assignee_id` tùy chọn, hạn, ưu tiên và trạng thái. |
+| `task_templates`, `task_template_runs` | Nội dung bộ mẫu do nhóm tạo và dấu lần áp dụng để chống thêm việc trùng. |
+| `quotes`, `quote_audit` | Nội dung báo giá lưu riêng, trạng thái/phiên bản và lịch sử người thực hiện cùng bản chụp từng lần ghi. |
 | `inquiries` | Yêu cầu tư vấn riêng tư, gắn tour. |
 | `pooling` | Phiếu B2B, khách ghép, giá net, tổng thu đã ghi nhận và trạng thái. |
 | `pooling_audit` | Ai thực hiện, lúc nào, số thu/trạng thái trước và sau. |
@@ -126,6 +138,20 @@ Khi thêm một thao tác sửa, giữ điều kiện `WHERE id=? AND workspace=
 
 Các bước có batch/trigger để giữ trạng thái phiếu và số chỗ nhất quán. `pooling_audit` ghi trước/sau cùng thao tác thành công. Không tự tạo lịch sử cho bản ghi cũ, và không gọi ghi sổ là chuyển tiền hay hoàn tiền thực tế.
 
+### Báo giá 0.8.0 khác thông tin tour thế nào?
+
+`quotes.payload` giữ người nhận, số khách, đơn giá, giảm giá cả đoàn, hạn hiệu lực và bản chụp thông tin tour. Tổng tiền được tính lại ở server bằng số nguyên VND. Sửa tour nguồn không tự thay nội dung báo giá đã lưu; xóa tour không xóa báo giá đã chốt.
+
+Luồng là nháp → chờ duyệt → đã duyệt hoặc cần sửa. API kiểm tra vai trò, workspace, trạng thái và phiên bản mỗi lần ghi. Chủ không gian là người quyết định cuối, có thể tự duyệt với xác nhận và lịch sử; nhân viên Quản lý không tự duyệt báo giá do mình tạo. Sửa bản đã duyệt phải mở lại nháp và duyệt lại. Chỉ bản đã duyệt được xuất; PDF lấy dữ liệu chuẩn mới từ API trước khi in, không dùng lại bản hiển thị cũ.
+
+`request_id` ổn định trên lần tạo nháp giúp thao tác gửi lại không tạo hai báo giá. Báo giá không công khai trên portal, không giữ chỗ, không tạo giao dịch hoặc tự gửi email. Nút xuất trong chi tiết tour vẫn là thông tin tour/giá một khách, không thay thế luồng duyệt mới.
+
+### Bộ mẫu và “Việc của tôi” hoạt động thế nào?
+
+Mẫu chứa danh sách việc do nhóm nhập, mốc ngày so với khởi hành, ưu tiên và tài khoản phụ trách tùy chọn. API tính ngày và trả xem trước; lúc áp dụng kiểm tra lại phiên bản tour/mẫu/người phụ trách. Một batch ghi dấu `run_id` cùng toàn bộ việc, nên gửi lại cùng lần tạo không thêm việc lần nữa. Dùng lại mẫu ở lần mới sẽ thêm bộ việc mới; không cập nhật ngược việc cũ. Ngừng dùng mẫu chỉ ẩn mẫu khỏi danh sách đang dùng.
+
+`assignee_id` liên kết việc với tài khoản trong cùng workspace; tên phụ trách vẫn lưu để đọc dữ liệu cũ. Bộ lọc **Việc của tôi** so sánh đúng ID đang đăng nhập, không đoán theo tên giống nhau. Chọn người và ghi dữ liệu đều phải kiểm tra họ còn thuộc workspace; việc chỉ nhập tên không tự gắn tài khoản. Thêm lựa chọn mẫu/báo giá ở kế hoạch gói chỉ phục vụ bản nháp nội bộ, không tạo thuê bao hoặc quyền trả phí.
+
 ## 5. Sửa ở nguồn gốc, rồi xuất sang cloud
 
 Nguồn FE/BE chính nằm trong **repo TaskHub này**. `scripts/export-sites.mjs` chuyển/copy các tệp cần thiết vào checkout Sites đã chuẩn bị, đổi phần kết nối Node/SQLite sang Workers/D1 và giữ các kiểm tra nghiệp vụ. `npm run build:pages` tạo frontend/gateway Pages từ nguồn hiện tại.
@@ -143,6 +169,8 @@ Khi sửa, làm ở `src/`, `server/`, `catalog/` hoặc script tương ứng tr
 | Cách tìm/lọc tour | `tour-search.mjs` và nơi gọi trong `main.jsx`; kiểm tra tour có dấu/không dấu, ngày và chỗ. |
 | Thêm trường tour | Biểu mẫu, `tourInput`/API, schema local, schema/migration D1 và xuất cloud; kiểm tra dữ liệu cũ. |
 | Quy tắc giữ chỗ hoặc tiền B2B | `server/operations.mjs` và `server/pooling-triggers.sql`; chạy kiểm tra đồng thời và lịch sử. |
+| Trạng thái, phép tính hoặc quyền báo giá | `shared/quotes.mjs`, `server/quotes.mjs`, `src/quotes-ui.jsx`; kiểm tra bản đã duyệt, sửa lại và dữ liệu tour đổi sau khi chốt. |
+| Mốc ngày hoặc cách áp dụng bộ mẫu | `shared/task-templates.mjs`, `server/task-templates.mjs`, `src/task-templates-ui.jsx`; kiểm tra gửi lặp và người phụ trách vừa bị thu hồi. |
 | Khảo sát ngoài web / CSV lịch sử | Bộ câu hỏi trong `docs/`; `server/feature-feedback.mjs` chỉ đọc/xuất dữ liệu cũ, công cụ tổng hợp tương ứng. |
 
 Sau thay đổi, chạy các kiểm tra liên quan rồi build:
