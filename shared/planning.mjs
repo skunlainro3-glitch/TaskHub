@@ -2,6 +2,8 @@ export const planFeatures = {
   tours: "Quản lý tour/lịch/chỗ",
   portal: "Cổng khách hàng",
   tasks: "Công việc",
+  taskTemplates: "Tạo công việc theo mẫu tour",
+  quotes: "Báo giá theo số khách và duyệt",
   pooling: "Ghép tour/đối soát",
   import: "Nhập Excel/CSV",
   roles: "Phân vai nhân viên",

@@ -25,6 +25,14 @@ export function Workflow({ data, access, onNav }) {
       visible: access.canReadInquiries,
     },
     {
+      title: "Soạn và duyệt báo giá",
+      owner: "Kinh doanh / chủ không gian hoặc quản lý",
+      text: "Nhập số khách và điều kiện; gửi duyệt trước khi xuất báo giá Excel hoặc PDF.",
+      nav: "quotes",
+      count: "Theo dõi tại mục Báo giá",
+      visible: access.canReadInquiries,
+    },
+    {
       title: "Xác nhận chỗ ghép",
       owner: "Điều hành",
       text: "Tạo phiếu đối tác; xác nhận mới giữ chỗ. Phiếu chờ chưa trừ chỗ.",
@@ -47,7 +55,7 @@ export function Workflow({ data, access, onNav }) {
     {
       title: "Thực hiện công việc",
       owner: "Điều hành / người phụ trách",
-      text: "Giao việc theo tour, ghi tên người phụ trách, hạn và trạng thái hoàn thành.",
+      text: "Giao việc theo tour hoặc áp dụng bộ mẫu; chọn tài khoản phụ trách, hạn và trạng thái.",
       nav: "tasks",
       count: `${pending} việc cần theo dõi`,
       visible: true,
@@ -82,7 +90,7 @@ export function Workflow({ data, access, onNav }) {
         <h3>Bàn giao giữa các bộ phận</h3>
         <p>
           Yêu cầu tư vấn không phải booking và không tự giữ chỗ. Kinh doanh và
-          điều hành cần đối chiếu thông tin, tạo/giao công việc theo tour; kế
+          điều hành cần đối chiếu thông tin, duyệt báo giá và tạo/giao công việc theo tour; kế
           toán kiểm tra phiếu đã xác nhận trước khi ghi nhận thu. Các bước này
           chưa tự gửi thông báo hoặc chuyển tiền.
         </p>
@@ -116,11 +124,11 @@ export function Workflow({ data, access, onNav }) {
                         operations:
                           "Quản lý tour, chỗ, công việc, tạo/xác nhận/hủy phiếu ghép; xem sổ thu nhưng không sửa khoản thu.",
                         sales:
-                          "Xem tour/chỗ, xử lý yêu cầu tư vấn và công việc; không xem sổ B2B.",
+                          "Xem tour/chỗ, xử lý yêu cầu tư vấn, soạn báo giá và công việc; không tự duyệt báo giá hoặc xem sổ B2B.",
                         accounting:
                           "Xem tour/công việc và sổ B2B, ghi nhận thu; không sửa tour/chỗ hoặc xác nhận phiếu, không xem liên hệ tư vấn.",
                         manager:
-                          "Quản lý nghiệp vụ và kế hoạch nội bộ; không tự cấp quyền nhân viên.",
+                          "Quản lý nghiệp vụ, duyệt báo giá của người khác và kế hoạch nội bộ; không tự cấp quyền nhân viên.",
                         general:
                           "Quyền nghiệp vụ tổng hợp tương thích tài khoản cũ; chủ không gian nên phân vai cụ thể.",
                       }[id]

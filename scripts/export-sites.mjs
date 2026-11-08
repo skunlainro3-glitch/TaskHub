@@ -12,8 +12,10 @@ put('lib/operations.mjs',readFileSync('server/operations.mjs','utf8'));
 put('lib/feature-feedback.mjs',readFileSync('server/feature-feedback.mjs','utf8'));
 put('lib/accounts.mjs',readFileSync('server/accounts.mjs','utf8'));
 put('lib/planning.mjs',readFileSync('server/planning.mjs','utf8'));
+put('lib/quotes.mjs',readFileSync('server/quotes.mjs','utf8'));
+put('lib/task-templates.mjs',readFileSync('server/task-templates.mjs','utf8'));
 put('lib/analytics.mjs',readFileSync('server/analytics.mjs','utf8'));
-for(const file of ['access.mjs','planning.mjs','analytics.mjs','xlsx.mjs']) put('shared/'+file,readFileSync('shared/'+file,'utf8'));
+for(const file of ['access.mjs','planning.mjs','analytics.mjs','xlsx.mjs','quotes.mjs','task-templates.mjs']) put('shared/'+file,readFileSync('shared/'+file,'utf8'));
 const packageFile=JSON.parse(readFileSync(join(target,'package.json'),'utf8'));
 packageFile.dependencies.fflate=JSON.parse(readFileSync('package.json','utf8')).dependencies.fflate;
 put('package.json',JSON.stringify(packageFile,null,2)+'\n');
@@ -130,14 +132,6 @@ api = api.slice(0,tourStart) + `      const result=await db.batch([
       ]);
       if(!result[0].changes) fail('Tour đã thay đổi hoặc không tồn tại. Tải lại trước khi sửa.',409);
 ` + api.slice(tourEnd);
-const taskStart=api.indexOf('      await transaction(db, async () => {',api.indexOf('if (p === "/api/tasks"'));
-const taskEnd=api.indexOf('      return json(res, { id }, 201);',taskStart);
-assert.ok(taskStart>0 && taskEnd>taskStart);
-api=api.slice(0,taskStart)+`      await db.batch([
-        ['INSERT INTO tasks(id,workspace,tour_id,title,assignee,due,priority,status,created) VALUES (?,?,?,?,?,?,?,?,?)',[id,u.workspace,tour.id,title,assignee,due,priority,'todo',now()]],
-        ...eventStatement(u,'task_created',id),
-      ]);
-`+api.slice(taskEnd);
 replace('export const server = http.createServer(async (req, res) => {','return async function handle(req, res) {');
 replace('    const url = new URL(req.url, "http://localhost");','    await retention();\n    const url = new URL(req.url, "http://localhost");');
 // The framework serves frontend assets; this module handles API requests only.
@@ -220,7 +214,7 @@ put('app/operations-ui.jsx',readFileSync('src/operations-ui.jsx','utf8'));
 put('app/operations-polish.css',readFileSync('src/operations-polish.css','utf8'));
 put('app/import-tours.mjs',readFileSync('src/import-tours.mjs','utf8'));
 put('app/interactions.mjs',readFileSync('src/interactions.mjs','utf8'));
-for (const file of ['api.mjs','polling.mjs','pooling-view.mjs','dates.mjs','tour-search.mjs','portal-filters.css','tour-media.jsx','tour-media-data.mjs','tour-image-variants.mjs','tour-media.css','portal-ui.jsx','accounts-ui.jsx','accounts.css','demo-ui.jsx','demo.css','sync-status.jsx','sync-state.mjs','workflow-ui.jsx','planning-ui.jsx','workspace-tools.css','analytics-ui.jsx','analytics.css','print-page.jsx','print-page.css','export-file.mjs']) {
+for (const file of ['api.mjs','polling.mjs','pooling-view.mjs','dates.mjs','tour-search.mjs','portal-filters.css','tour-media.jsx','tour-media-data.mjs','tour-image-variants.mjs','tour-media.css','portal-ui.jsx','accounts-ui.jsx','accounts.css','demo-ui.jsx','demo.css','sync-status.jsx','sync-state.mjs','workflow-ui.jsx','planning-ui.jsx','workspace-tools.css','analytics-ui.jsx','analytics.css','print-page.jsx','print-page.css','export-file.mjs','quotes-ui.jsx','quotes.css','task-templates-ui.jsx','task-templates.css']) {
   put('app/'+file,readFileSync('src/'+file,'utf8'));
 }
 put('app/globals.css',readFileSync('src/styles.css','utf8'));

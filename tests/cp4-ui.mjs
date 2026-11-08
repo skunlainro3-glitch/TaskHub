@@ -38,7 +38,7 @@ try {
   const accepted=await api(staff,'/team/invites/accept','POST',{token:new URL(invite.url).searchParams.get('invite'),email,name:'CP4 QA member',password,consent:true});
   const memberId=accepted.user.id;
   await page.goto(base+'/app');await page.getByRole('heading',{name:'Tổng quan',exact:true}).waitFor();
-  await nav(page,'Quy trình vận hành');await page.locator('.workflow-steps > li').last().waitFor();assert.equal(await page.locator('.workflow-steps > li').count(),5);await layout(page,'workflow');
+  await nav(page,'Quy trình vận hành');await page.locator('.workflow-steps > li').last().waitFor();assert.equal(await page.locator('.workflow-steps > li').count(),6);await page.getByRole('heading',{name:'Soạn và duyệt báo giá',exact:true}).waitFor();await layout(page,'workflow');
   await nav(page,'Giá trị & doanh thu');await page.getByRole('button',{name:'Lưu bản nháp',exact:true}).waitFor();
   await page.getByLabel('Số thao tác mỗi tháng',{exact:true}).fill('120');
   await page.getByLabel('Số phút trước khi áp dụng / thao tác',{exact:true}).fill('15');

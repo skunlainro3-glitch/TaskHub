@@ -1,6 +1,8 @@
 # TaskHub — MVP điều hành tour
 
-Bản ổn định **0.7.3** đã phát hành ngày **04/11/2026**. Dùng [hướng dẫn demo CP4](docs/CP4_DEMO_0_7_3.md) cho luồng hiện tại, bản local dự phòng và bảng yêu cầu. Commit/tag/deployment đã kiểm chứng được ghi tại [VALIDATION](docs/VALIDATION.md). Nhóm làm việc trên `dev`, sau đó tạo pull request `dev` → `main` để chủ repo duyệt. `main` là nhánh chính, mặc định và được bảo vệ; chỉ phát hành mã đã được duyệt.
+Bản **0.8.0 — 09/11/2026** bổ sung báo giá theo số khách có bước duyệt, bộ mẫu công việc theo tour và bộ lọc **Việc của tôi** theo tài khoản. Xem [cách dùng, kiểm tra và trạng thái phát hành 0.8.0](docs/RELEASE_0_8_0.md). Việc triển khai public đang chờ kiểm tra cuối; không coi mã đã viết là bằng chứng đã phát hành. Nhóm làm việc trên `dev`, sau đó tạo pull request `dev` → `main` để chủ repo duyệt. `main` là nhánh chính, mặc định và được bảo vệ; chỉ phát hành mã đã được duyệt.
+
+Bản **0.7.3** đã phát hành ngày **04/11/2026**, có [hướng dẫn demo CP4 dự phòng](docs/CP4_DEMO_0_7_3.md). Giữ nguyên các tag đã phát hành. Commit/tag/deployment đã kiểm chứng được ghi tại [VALIDATION](docs/VALIDATION.md).
 
 Các đoạn mô tả 0.7.2/0.7.0/0.6.0 bên dưới là lịch sử thay đổi; hướng dẫn thao tác hiện hành nằm trong tài liệu CP4 trên.
 
@@ -52,7 +54,7 @@ Mở http://127.0.0.1:5173. Frontend dùng port 5173; API port 3001. Dừng bằ
 - Nếu chuyển sang máy khác: cài Node.js **24 LTS**, chạy `npm ci` trước. Không dùng Node 18/20 vì backend dùng `node:sqlite`.
 - Dữ liệu nằm trong `data/taskhub.sqlite` (và tệp WAL/SHM khi chạy). `data/` và `.env` đã được bỏ khỏi Git.
 
-Để dùng đúng code demo, chạy `git fetch --tags` rồi `git switch --detach cp4-demo-v0.7.3-final`, `npm ci` và `npm run dev`. Tag cố định code, không khóa dữ liệu live; dùng workspace demo riêng. Muốn tiếp tục sửa code thì `git switch dev`. Các tag trước giữ nguyên làm dự phòng.
+Để chạy lại bản demo **0.7.3 dự phòng**, chạy `git fetch --tags` rồi `git switch --detach cp4-demo-v0.7.3-final`, `npm ci` và `npm run dev`. Tag cố định code, không khóa dữ liệu live; dùng workspace demo riêng. Muốn tiếp tục sửa code thì `git switch dev`. Các tag trước giữ nguyên làm dự phòng; cách thử ba luồng mới nằm trong [bàn giao 0.8.0](docs/RELEASE_0_8_0.md).
 
 Nếu đã clone theo hướng dẫn cũ, lưu/commit phần đang làm trước, rồi chuyển sang nhánh làm việc:
 
@@ -87,13 +89,15 @@ Bản 0.4 thêm sửa/xóa công việc có phiên bản, lọc việc quá hạ
 
 Bản 0.4.1 thêm tìm tour không dấu, lọc ngày/chỗ, số kết quả và đặt lại bộ lọc. Từ 0.7.3 danh mục tham khảo chỉ còn trong điều hành. Form nhập/lưu khóa các lối đóng trong lúc xử lý. API tư vấn kiểm tra lại khả dụng ngay lúc ghi dữ liệu, không tự giữ chỗ. Nhóm mới nhận code đọc [hướng dẫn mã nguồn](docs/CODE_GUIDE.md).
 
-B2B chưa có đối tác tự đăng nhập/duyệt; net price chỉ theo từng phiếu, chưa quản lý net/markup toàn tour hoặc nhà cung cấp. Thanh toán, chatbot và Google login chưa triển khai. Xác minh email đã được bỏ theo yêu cầu chủ dự án. Khôi phục mật khẩu có luồng/token nhưng chưa có dịch vụ gửi email. Nhân viên có tài khoản riêng theo lời mời và quyền được cấp; người phụ trách công việc vẫn là tên nhập, chưa có thông báo tự động đến người đó.
+B2B chưa có đối tác tự đăng nhập/duyệt; net price chỉ theo từng phiếu, chưa quản lý net/markup toàn tour hoặc nhà cung cấp. Thanh toán, chatbot và Google login chưa triển khai. Xác minh email đã được bỏ theo yêu cầu chủ dự án. Khôi phục mật khẩu có luồng/token nhưng chưa có dịch vụ gửi email. Nhân viên có tài khoản riêng theo lời mời và quyền được cấp. Từ 0.8.0, công việc có thể gắn tài khoản phụ trách để lọc **Việc của tôi**; tên nhập tay cũ vẫn được giữ, không tự ghép theo tên và chưa có thông báo tự động.
 
 Yêu cầu tư vấn không giữ chỗ hoặc xác nhận booking; chưa có tiền giao dịch thật. Tour, giá, lịch và người phụ trách phải do người quản lý nhập; bản cài mới không tự tạo dữ liệu kinh doanh. Giá SaaS chưa chốt; 500.000 VND/tháng trong CP2 là giả định, không dùng làm kết quả khảo sát. Từ 0.7.2, web không thu mức sẵn sàng trả hoặc có form Van Westendorp; phân tích giá dùng dữ liệu khảo sát bên ngoài đã được nhóm cung cấp và xác minh.
 
 ## Demo và xuất báo giá
 
-Dùng [kịch bản 6 phút P1–P3](docs/CP4_DEMO_0_7_3.md). Trong Quản lý tour, bấm tên/ảnh để xem chi tiết; **Sửa tour** là thao tác riêng dành cho người có quyền. Chi tiết có **Báo giá Excel** và **In / lưu báo giá PDF**. Portal cũng mở được thông tin công khai này. Báo giá hiện là thông tin tour/giá mỗi khách, chưa tính số khách hoặc chiết khấu cá nhân.
+Dùng [bàn giao 0.8.0](docs/RELEASE_0_8_0.md) để thử báo giá và công việc mới; [kịch bản 6 phút P1–P3](docs/CP4_DEMO_0_7_3.md) giữ làm mốc dự phòng. Vào **Báo giá** để lập số khách, đơn giá, giảm giá cả đoàn và hạn hiệu lực; lưu nháp → gửi duyệt → xuất Excel hoặc In/Lưu PDF sau khi được duyệt. Sửa bản đã duyệt phải mở lại nháp và duyệt lại.
+
+Chức năng xuất trong **chi tiết tour** vẫn tách riêng: bấm tên/ảnh tour để xem **Báo giá Excel** hoặc **In / lưu báo giá PDF**; đây là thông tin tour và giá một khách, không phải báo giá theo đoàn đã qua duyệt. Portal cũng xem được thông tin công khai này. **Sửa tour** là thao tác riêng dành cho người có quyền.
 
 Excel/CSV công nợ B2B xuất **toàn không gian**; bản in PDF theo **bộ lọc đang xem**. Đọc nhãn phạm vi cạnh nút trước khi đối chiếu. PDF mở hộp thoại trình duyệt để chọn Lưu dưới dạng PDF, không tự tải PDF từ máy chủ.
 

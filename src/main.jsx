@@ -37,6 +37,7 @@ import {
   Settings,
   GitBranch,
   Calculator,
+  FileText,
 } from "lucide-react";
 import "./styles.css";
 import { createOperationsUI } from "./operations-ui.jsx";
@@ -45,6 +46,8 @@ import { createPortalUI } from "./portal-ui.jsx";
 import { createAccountUI } from "./accounts-ui.jsx";
 import { createDemoUI } from "./demo-ui.jsx";
 import { createPlanningUI } from "./planning-ui.jsx";
+import { createQuotesUI } from "./quotes-ui.jsx";
+import { createTaskTemplatesUI } from "./task-templates-ui.jsx";
 import { Workflow } from "./workflow-ui.jsx";
 import { Analytics } from "./analytics-ui.jsx";
 import { SyncStatus } from "./sync-status.jsx";
@@ -75,6 +78,7 @@ const navItems = [
   ["analytics", "Báo cáo vận hành", BarChart3],
   ["tours", "Quản lý tour", Compass],
   ["tasks", "Công việc", ListTodo],
+  ["quotes", "Báo giá", FileText],
   ["pooling", "Ghép tour B2B", Handshake],
   ["inbox", "Yêu cầu tư vấn", Inbox],
   ["workflow", "Quy trình vận hành", GitBranch],
@@ -576,6 +580,15 @@ function TaskEditor({
     [busy, setBusy] = useState(false),
     [conflict, setConflict] = useState(false),
     [confirmDelete, setConfirmDelete] = useState(false);
+  const [people, setPeople] = useState([]);
+  const [peopleError, setPeopleError] = useState("");
+  const [assigneeId, setAssigneeId] = useState(task?.assignee_id || "");
+  const loadPeople = async () => {
+    try { const result = await api("/task-people"); setPeople(result.people); setPeopleError(""); }
+    catch (error) { setPeopleError(error.message); }
+  };
+  useEffect(() => { void loadPeople(); }, []);
+  useEffect(() => { setAssigneeId(task?.assignee_id || ""); }, [task?.id, task?.version]);
   async function save(e) {
     e.preventDefault();
     setBusy(true);
@@ -682,10 +695,15 @@ function TaskEditor({
             ))}
           </select>
         </Field>
-        <Field
-          label="Người phụ trách"
-          hint="Tên nhập để theo dõi; chưa tạo tài khoản hoặc gửi thông báo cho người này."
-        >
+        <Field label="Tài khoản phụ trách" hint="Chọn tài khoản để công việc hiện trong Việc của tôi. Chưa tự gửi thông báo.">
+          <select name="assignee_id" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)}>
+            <option value="">Nhập tên để theo dõi</option>
+            {assigneeId && !people.some((person) => person.id === assigneeId) && <option value={assigneeId}>Tài khoản cũ — cần chọn lại</option>}
+            {people.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
+          </select>
+        </Field>
+        {peopleError && <div className="workspace-notice"><p>Chưa tải được danh sách người phụ trách: {peopleError}</p><button type="button" className="text-btn" onClick={loadPeople}>Thử tải danh sách</button></div>}
+        {!assigneeId && <Field label="Tên người phụ trách" hint="Tên nhập tay không được tự gắn với tài khoản cùng tên.">
           <input
             name="assignee"
             defaultValue={task?.assignee || ""}
@@ -693,7 +711,7 @@ function TaskEditor({
             maxLength="80"
             placeholder="Nhập tên người phụ trách"
           />
-        </Field>
+        </Field>}
         <div className="form-grid">
           <Field label="Hạn hoàn thành">
             <input
@@ -923,13 +941,15 @@ function Dashboard({
   );
 }
 
-function Tasks({ data, onNew, onChange, onEdit, pendingId, readOnly = false }) {
+function Tasks({ data, onNew, onChange, onEdit, pendingId, readOnly = false, user }) {
   const [query, setQuery] = useState(""),
     [filter, setFilter] = useState(""),
-    [dueFilter, setDueFilter] = useState("all");
+    [dueFilter, setDueFilter] = useState("all"),
+    [mine, setMine] = useState(false);
   const tours = Object.fromEntries(data.tours.map((t) => [t.id, t.title]));
   const visible = data.tasks.filter(
     (t) =>
+      (!mine || t.assignee_id === user?.id) &&
       (!filter || t.tour_id === filter) &&
       (dueFilter === "all" ||
         (dueFilter === "overdue" && t.status !== "done" && t.due < todayVN()) ||
@@ -941,6 +961,7 @@ function Tasks({ data, onNew, onChange, onEdit, pendingId, readOnly = false }) {
   return (
     <>
       <div className="filter-bar">
+        {user?.id && <label className="checkbox"><input type="checkbox" checked={mine} onChange={(event) => setMine(event.target.checked)} />Việc của tôi</label>}
         <label className="search">
           <Search size={18} />
           <input
@@ -980,13 +1001,14 @@ function Tasks({ data, onNew, onChange, onEdit, pendingId, readOnly = false }) {
             .length
         }{" "}
         quá hạn{" "}
-        {Boolean(query || filter || dueFilter !== "all") && (
+        {Boolean(query || filter || dueFilter !== "all" || mine) && (
           <button
             className="text-btn"
             onClick={() => {
               setQuery("");
               setFilter("");
               setDueFilter("all");
+              setMine(false);
             }}
           >
             Xóa bộ lọc công việc
@@ -1097,8 +1119,9 @@ function Workspace({ user, onLogout, onPortal, notify }) {
   const [catalog, setCatalog] = useState(null);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [planningDirty, setPlanningDirty] = useState(false);
-  const leavePlanning = () => !planningDirty || confirm("Bản nháp kế hoạch chưa lưu. Rời khỏi và bỏ thay đổi?");
-  const changeNav = (id) => { if(id!==nav && leavePlanning()) {setPlanningDirty(false);setNav(id);} };
+  const [quoteDirty, setQuoteDirty] = useState(false);
+  const leaveUnsaved = () => (!planningDirty && !quoteDirty) || confirm("Có thay đổi chưa lưu. Rời khỏi và bỏ thay đổi?");
+  const changeNav = (id) => { if(id!==nav && leaveUnsaved()) {setPlanningDirty(false);setQuoteDirty(false);setNav(id);} };
   const access = data?.access || workspaceAccess({ ...user, workspace_permission: permission });
   const [mobile, setMobile] = useState(
     () => matchMedia("(max-width: 650px)").matches,
@@ -1248,6 +1271,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
   const detailTour = editor?.tour && data?.tours.find((tour) => tour.id === editor.tour.id);
   const allowedNav = navItems.filter(([id]) =>
     (id !== "inbox" || access.canReadInquiries) &&
+    (id !== "quotes" || access.canReadInquiries) &&
     (id !== "pooling" || access.canReadPooling) &&
     (id !== "business" || access.canReadPlanning),
   );
@@ -1274,6 +1298,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
     analytics: "Phân tích lịch tour, công việc và đối soát từ dữ liệu của không gian.",
     tours: "Dữ liệu điều hành và cổng khách hàng cùng một nguồn.",
     tasks: "Theo dõi người phụ trách, thời hạn và trạng thái công việc.",
+    quotes: "Soạn báo giá theo số khách, gửi duyệt và xuất bản đã được xác nhận.",
     pooling: "Một nơi xác nhận khách ghép và theo dõi số tiền còn phải thu.",
     inbox: "Tiếp nhận yêu cầu ngay cả ngoài giờ làm việc.",
     account: "Gửi lời mời và phân quyền cho người cùng làm việc.",
@@ -1335,7 +1360,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
             <strong>
               Cổng thông tin tour
             </strong>
-            <button onClick={()=>{if(leavePlanning())onPortal();}}>
+            <button onClick={()=>{if(leaveUnsaved())onPortal();}}>
               Mở cổng khách hàng
               <ArrowUpRight size={15} />
             </button>
@@ -1352,7 +1377,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
               className="icon-btn"
               title="Đăng xuất"
               aria-label="Đăng xuất"
-              onClick={()=>{if(leavePlanning())onLogout();}}
+              onClick={()=>{if(leaveUnsaved())onLogout();}}
             >
               <LogOut size={17} />
             </button>
@@ -1380,7 +1405,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
               <span className="live-dot" />
               {user.workspace === "agency" ? "Dữ liệu giả lập" : "Bản dùng thử"}
             </Badge>
-            <button className="text-btn" onClick={()=>{if(leavePlanning())onPortal();}}>
+            <button className="text-btn" onClick={()=>{if(leaveUnsaved())onPortal();}}>
               <Globe size={16} />
               Cổng khách hàng
               <ArrowUpRight size={14} />
@@ -1426,6 +1451,11 @@ function Workspace({ user, onLogout, onPortal, notify }) {
                 <Button onClick={() => setEditor({ type: "tour" })}>
                   <Plus size={17} />
                   Tạo tour
+                </Button>
+              )}
+              {nav === "tasks" && access.canEditTasks && (
+                <Button variant="ghost" onClick={() => setEditor({type:"task-templates"})}>
+                  <ListTodo size={17} /> Mẫu công việc
                 </Button>
               )}
               {nav === "tasks" && access.canEditTasks && (
@@ -1565,6 +1595,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
               )}
               {nav === "tasks" && (
                 <Tasks
+                  user={user}
                   readOnly={!access.canEditTasks}
                   data={data}
                   onNew={() => setEditor({ type: "task" })}
@@ -1587,6 +1618,9 @@ function Workspace({ user, onLogout, onPortal, notify }) {
                   reload={reload}
                   notify={notify}
                 />
+              )}
+              {nav === "quotes" && access.canReadInquiries && (
+                <Quotes user={user} access={access} tours={data.tours} notify={notify} onDirtyChange={setQuoteDirty} />
               )}
               {nav === "inbox" && access.canReadInquiries && (
                 <section className="panel">
@@ -1697,7 +1731,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
             </>
           )}
           <footer className="app-footer">
-            <span>TaskHub · Điều hành tour · 0.7.3</span>
+            <span>TaskHub · Điều hành tour · 0.8.0</span>
             <span>Tour · Lịch / số chỗ · Công việc</span>
           </footer>
         </main>
@@ -1752,6 +1786,9 @@ function Workspace({ user, onLogout, onPortal, notify }) {
             );
           }}
         />
+      )}
+      {editor?.type === "task-templates" && access.canEditTasks && (
+        <TaskTemplates tours={data.tours} notify={notify} onClose={() => setEditor(null)} onApplied={reload} onRefresh={reload} />
       )}
       {editor?.type === "catalog" && access.canEditTours && catalog && (
         <CatalogPicker
@@ -1812,6 +1849,8 @@ const { DemoLoader } = createDemoUI({
   api,
 });
 const BusinessPlanning = createPlanningUI({Button, Field, ErrorBox, api, money});
+const Quotes = createQuotesUI({Button, Field, Modal, ErrorBox, Badge, money, date, api});
+const TaskTemplates = createTaskTemplatesUI({Button, Field, Modal, ErrorBox, api, date});
 const { TourCard, CatalogPicker, Portal, TourDetails } = createPortalUI({
   Modal,
   Button,

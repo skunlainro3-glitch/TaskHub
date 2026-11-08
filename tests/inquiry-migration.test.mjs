@@ -10,7 +10,7 @@ const migrations = readdirSync('cloud/drizzle').filter(f => f.endsWith('.sql')).
 function legacyDatabase(path) {
   const db = new DatabaseSync(path);
   db.exec('PRAGMA foreign_keys=ON');
-  for (const file of migrations.filter(f => !f.startsWith('0005_')))
+  for (const file of migrations.filter(f => f < '0005_'))
     db.exec(readFileSync('cloud/drizzle/' + file, 'utf8'));
   db.exec(`INSERT INTO workspaces VALUES ('qa','QA only');
     INSERT INTO users VALUES ('user','qa@example.test','QA','not-a-credential','qa','operations','10to30','2026-11-04','QA');
@@ -25,6 +25,7 @@ function businessSnapshot(db) {
   return Object.fromEntries(['workspaces','users','tours','tasks','inquiries','pooling','pooling_audit','events','feedback','feature_feedback'].map(table => [table, db.prepare('SELECT * FROM ' + table).all().map(row => {
     const copy = {...row};
     if (table === 'inquiries') delete copy.version;
+    if (table === 'tasks') delete copy.assignee_id;
     return copy;
   })]));
 }

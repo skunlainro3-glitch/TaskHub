@@ -276,7 +276,7 @@ try {
     .fill("Công việc kiểm thử UI");
   await page.getByLabel("Tour liên quan", { exact: true }).selectOption({ label: qaTour.title });
   await page
-    .getByLabel("Người phụ trách", { exact: true })
+    .getByLabel("Tên người phụ trách", { exact: true })
     .fill("Nhân viên mẫu");
   await page.getByLabel('Hạn hoàn thành',{exact:true}).fill(qaTour.departure);
   await page
@@ -294,7 +294,7 @@ try {
   await page.getByRole("button", { name: "Sửa Công việc kiểm thử UI", exact: true }).click();
   await page.getByRole("heading", { name: "Cập nhật công việc", exact: true }).waitFor();
   await page.getByLabel("Công việc", { exact: true }).fill("Công việc kiểm thử UI đã cập nhật");
-  await page.getByLabel("Người phụ trách", { exact: true }).fill("Người phụ trách đã đổi");
+  await page.getByLabel("Tên người phụ trách", { exact: true }).fill("Người phụ trách đã đổi");
   await page.getByLabel("Hạn hoàn thành", { exact: true }).fill("2026-12-19");
   await page.getByLabel("Ưu tiên", { exact: true }).selectOption("high");
   await page.getByRole("button", { name: "Lưu công việc", exact: true }).click();
@@ -313,7 +313,7 @@ try {
   await page.getByRole("button", { name: "Giao công việc", exact: true }).click();
   await page.getByLabel("Công việc", { exact: true }).fill("Công việc kiểm thử để xóa");
   await page.getByLabel("Tour liên quan", { exact: true }).selectOption({ label: qaTour.title });
-  await page.getByLabel("Người phụ trách", { exact: true }).fill("Người kiểm thử xóa");
+  await page.getByLabel("Tên người phụ trách", { exact: true }).fill("Người kiểm thử xóa");
   await page.getByLabel("Hạn hoàn thành", { exact: true }).fill(qaTour.departure);
   await page.getByRole("dialog").getByRole("button", { name: "Giao công việc", exact: true }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
