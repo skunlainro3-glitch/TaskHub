@@ -8,6 +8,8 @@ Pages phục vụ giao diện React/Vite của repo. `/api/*` đi qua gateway c�
 
 ## Tài khoản và lần phát hành tiếp theo
 
+Dự án hiện thuộc account `5ba821b71ddc3e5bfc0ca8eeec6c2ce3`. Trước khi đăng nhập lại, kiểm tra phiên Edge đã dùng để triển khai và đối chiếu account này trong dashboard. Thông tin tài khoản sở hữu đã xác nhận được giữ cục bộ tại `work/pages-proxy/owner.json`; tệp này nằm ngoài Git và không chứa mật khẩu hoặc token.
+
 1. Chủ dự án đã xác nhận kết nối Cloudflare với các scope `account:read`, `user:read`, `pages:write` và refresh session. Khi cần đăng nhập lại, dùng **Wrangler 4.151.0 Device Authorization** để tránh callback localhost: `npx wrangler@4.151.0 login --device --scopes account:read user:read pages:write`. Chủ tài khoản phải đồng ý cấp quyền; không chia sẻ mật khẩu/OTP qua chat. Credentials không nằm trong repo.
 2. Đảm bảo backend Sites đã phát hành adapter hỗ trợ gateway và có secret runtime `TASKHUB_PROXY_SECRET`. Giữ nguyên Site ID và D1 trong `cloud/site.json`. Bản export nằm trong `scripts/export-sites.mjs`; không đổi database hoặc migration đã áp dụng.
 3. Tại repo TaskHub, dùng Node.js 24:

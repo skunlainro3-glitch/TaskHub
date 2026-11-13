@@ -5,7 +5,7 @@
 - Chưa tái hiện lỗi admin bị chặn giao việc. Mỗi công việc dùng một `assignee_id`. Danh sách gồm thành viên đã nhận lời mời cùng không gian. Người chỉ xem hoặc Kế toán có thể được ghi là phụ trách nhưng không có quyền sửa công việc.
 - Giao diện hiện bộ phận bên cạnh tên, chủ không gian thấy nhãn chỉ theo dõi theo quyền hiện có. Thêm trạng thái tải, nút tải lại và hướng dẫn khi danh sách chỉ có chủ. Tải lại giữ nội dung, tour, hạn và người đang chọn. Bộ mẫu dùng cùng nhãn người nhận.
 - `npm test` đạt 129/129. Kiểm tra bộ mẫu trên libSQL đạt 14/14. Build frontend và Pages đạt. `tests/task-assignment-ui.mjs` đạt trên Node local với API cũ: hai người trùng tên thuộc hai bộ phận, giao hai việc riêng, lọc Việc của tôi và đổi trạng thái đúng tài khoản, role 403, lời mời chờ/đã nhận, tải chậm, lỗi tải và thử lại. Rà ảnh 320/1440px đạt, không có lỗi JavaScript trong luồng đã thử. Tài khoản và không gian QA được xóa sau kiểm thử.
-- Bản sửa giao diện dùng API `/task-people` và `/team` hiện có. Không cần đổi API, schema hoặc dữ liệu. Tại thời điểm kiểm tra local, phiên Wrangler hết hiệu lực nên chưa triển khai public.
+- Bản sửa giao diện dùng API `/task-people` và `/team` hiện có. Không cần đổi API, schema hoặc dữ liệu. Commit `0c1c61f` đã đẩy lên `dev`; [CI 43374372778](https://github.com/skunlainro3-glitch/TaskHub/actions/runs/43374372778) đạt. Pages production `1fadd6ba-35ea-4a2c-9e41-5b29d9033043` triển khai thành công sau khi khôi phục phiên Wrangler. Bộ kiểm thử giao việc trên **https://taskhub-travel.pages.dev** đạt với backend hiện có, gồm người nhận nhiều vai trò, giữ nội dung khi tải lại/lỗi tải, Việc của tôi, trạng thái và giao diện 320/1440px. Không gian QA riêng đã xóa sau kiểm thử.
 
 ## Báo giá có duyệt và mẫu công việc 0.8.0 — 09/11/2026
 
