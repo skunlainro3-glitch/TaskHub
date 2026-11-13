@@ -1,5 +1,12 @@
 # Kiểm chứng TaskHub
 
+## Chọn tài khoản phụ trách — 13/11/2026
+
+- Chưa tái hiện lỗi admin bị chặn giao việc. Mỗi công việc dùng một `assignee_id`. Danh sách gồm thành viên đã nhận lời mời cùng không gian. Người chỉ xem hoặc Kế toán có thể được ghi là phụ trách nhưng không có quyền sửa công việc.
+- Giao diện hiện bộ phận bên cạnh tên, chủ không gian thấy nhãn chỉ theo dõi theo quyền hiện có. Thêm trạng thái tải, nút tải lại và hướng dẫn khi danh sách chỉ có chủ. Tải lại giữ nội dung, tour, hạn và người đang chọn. Bộ mẫu dùng cùng nhãn người nhận.
+- `npm test` đạt 129/129. Kiểm tra bộ mẫu trên libSQL đạt 14/14. Build frontend và Pages đạt. `tests/task-assignment-ui.mjs` đạt trên Node local với API cũ: hai người trùng tên thuộc hai bộ phận, giao hai việc riêng, lọc Việc của tôi và đổi trạng thái đúng tài khoản, role 403, lời mời chờ/đã nhận, tải chậm, lỗi tải và thử lại. Rà ảnh 320/1440px đạt, không có lỗi JavaScript trong luồng đã thử. Tài khoản và không gian QA được xóa sau kiểm thử.
+- Bản sửa giao diện dùng API `/task-people` và `/team` hiện có. Không cần đổi API, schema hoặc dữ liệu. Tại thời điểm kiểm tra local, phiên Wrangler hết hiệu lực nên chưa triển khai public.
+
 ## Báo giá có duyệt và mẫu công việc 0.8.0 — 09/11/2026
 
 - Runtime GitHub `66b2b257095fd525c44bc932f3ce8bc2b76cb9c9`, trên `dev`; [PR #9](https://github.com/skunlainro3-glitch/TaskHub/pull/9) vào `main` chờ chủ repo duyệt. Không thay đổi hoặc vượt bảo vệ `main`. [CI push 42506881237](https://github.com/skunlainro3-glitch/TaskHub/actions/runs/42506881237) và [CI PR 42506940336](https://github.com/skunlainro3-glitch/TaskHub/actions/runs/42506940336) đều đạt, gồm hai bộ browser mới.

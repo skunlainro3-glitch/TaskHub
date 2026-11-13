@@ -1,4 +1,12 @@
+import { departmentNames } from './access.mjs';
+
 const fail = (message) => { throw Object.assign(Error(message), { status: 400 }); };
+
+export function taskPersonLabel(person) {
+  const department = person.department === 'owner' ? 'Chủ không gian' : departmentNames[person.department];
+  const permission = person.can_edit_tasks === false ? 'chỉ theo dõi' : '';
+  return [person.name, department, permission].filter(Boolean).join(' · ');
+}
 
 export function taskTemplateInput(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) fail('Bộ mẫu không hợp lệ.');

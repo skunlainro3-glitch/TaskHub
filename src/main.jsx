@@ -52,6 +52,8 @@ import { Workflow } from "./workflow-ui.jsx";
 import { Analytics } from "./analytics-ui.jsx";
 import { SyncStatus } from "./sync-status.jsx";
 import { workspaceAccess } from "../shared/access.mjs";
+import { taskPersonLabel } from "../shared/task-templates.mjs";
+import { loadTaskPeople } from "./task-people.mjs";
 import { api } from "./api.mjs";
 import { startPolling } from "./polling.mjs";
 import { tourDeletionSummary } from "./pooling-view.mjs";
@@ -571,6 +573,7 @@ function TourEditor({
 function TaskEditor({
   tours,
   task,
+  canManageTeam,
   defaultTourId,
   onClose,
   onSave,
@@ -581,11 +584,14 @@ function TaskEditor({
     [conflict, setConflict] = useState(false),
     [confirmDelete, setConfirmDelete] = useState(false);
   const [people, setPeople] = useState([]);
+  const [peopleLoading, setPeopleLoading] = useState(true);
   const [peopleError, setPeopleError] = useState("");
   const [assigneeId, setAssigneeId] = useState(task?.assignee_id || "");
   const loadPeople = async () => {
-    try { const result = await api("/task-people"); setPeople(result.people); setPeopleError(""); }
+    setPeopleLoading(true);
+    try { setPeople(await loadTaskPeople(api, canManageTeam)); setPeopleError(""); }
     catch (error) { setPeopleError(error.message); }
+    finally { setPeopleLoading(false); }
   };
   useEffect(() => { void loadPeople(); }, []);
   useEffect(() => { setAssigneeId(task?.assignee_id || ""); }, [task?.id, task?.version]);
@@ -695,14 +701,21 @@ function TaskEditor({
             ))}
           </select>
         </Field>
-        <Field label="Tài khoản phụ trách" hint="Chọn tài khoản để công việc hiện trong Việc của tôi. Chưa tự gửi thông báo.">
-          <select name="assignee_id" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)}>
+        <Field label="Tài khoản phụ trách" hint="Mỗi việc có một người phụ trách. Danh sách gồm người đã nhận lời mời vào cùng không gian. Người nhận cần quyền sửa công việc để cập nhật trạng thái.">
+          <select name="assignee_id" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} disabled={peopleLoading || busy}>
             <option value="">Nhập tên để theo dõi</option>
             {assigneeId && !people.some((person) => person.id === assigneeId) && <option value={assigneeId}>Tài khoản cũ — cần chọn lại</option>}
-            {people.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
+            {people.map((person) => <option key={person.id} value={person.id}>{taskPersonLabel(person)}</option>)}
           </select>
         </Field>
-        {peopleError && <div className="workspace-notice"><p>Chưa tải được danh sách người phụ trách: {peopleError}</p><button type="button" className="text-btn" onClick={loadPeople}>Thử tải danh sách</button></div>}
+        <div className="task-people-status">
+          {peopleLoading ? <p role="status">Đang tải người phụ trách…</p> : <>
+            {peopleError && <p role="alert">Chưa tải được danh sách người phụ trách: {peopleError}</p>}
+            {!peopleError && people.length < 2 && <p>Mời thêm nhân viên tại Tài khoản & nhóm, rồi tải lại danh sách sau khi họ nhận lời mời.</p>}
+            {people.find((person) => person.id === assigneeId)?.can_edit_tasks === false && <p>Người này chỉ theo dõi công việc. Chủ không gian có thể kiểm tra vai trò và quyền tại Tài khoản & nhóm.</p>}
+          </>}
+          <button type="button" className="text-btn" onClick={loadPeople} disabled={peopleLoading || busy}>Tải lại người phụ trách</button>
+        </div>
         {!assigneeId && <Field label="Tên người phụ trách" hint="Tên nhập tay không được tự gắn với tài khoản cùng tên.">
           <input
             name="assignee"
@@ -780,7 +793,7 @@ function TaskEditor({
           >
             Hủy
           </Button>
-          <Button disabled={busy || !tours.length}>
+          <Button disabled={busy || peopleLoading || !tours.length}>
             {busy ? "Đang lưu…" : task ? "Lưu công việc" : "Giao công việc"}
             <Check size={16} />
           </Button>
@@ -1774,6 +1787,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
       )}
       {editor?.type === "task" && access.canEditTasks && (
         <TaskEditor
+          canManageTeam={access.canManageTeam}
           tours={data.tours}
           defaultTourId={editor.tour?.id}
           task={editor.task}
@@ -1788,7 +1802,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
         />
       )}
       {editor?.type === "task-templates" && access.canEditTasks && (
-        <TaskTemplates tours={data.tours} notify={notify} onClose={() => setEditor(null)} onApplied={reload} onRefresh={reload} />
+        <TaskTemplates tours={data.tours} canManageTeam={access.canManageTeam} notify={notify} onClose={() => setEditor(null)} onApplied={reload} onRefresh={reload} />
       )}
       {editor?.type === "catalog" && access.canEditTours && catalog && (
         <CatalogPicker

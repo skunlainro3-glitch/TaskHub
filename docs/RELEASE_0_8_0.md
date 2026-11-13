@@ -83,6 +83,12 @@ Tên phụ trách nhập tay từ dữ liệu cũ vẫn giữ nguyên. Các vi�
 
 Dùng hai tài khoản QA cùng workspace. Giao một việc bằng tài khoản A và một việc bằng tài khoản B → đăng nhập từng người → bật bộ lọc và kiểm tra đúng việc của người đó. Thêm một việc chỉ nhập tên giống A: việc này không tự được tính là của A. Không chọn được người từ workspace khác.
 
+### Chọn người phụ trách — cập nhật 13/11/2026
+
+Mỗi công việc có một tài khoản phụ trách. Danh sách chỉ gồm người đã nhận lời mời vào cùng không gian. Nếu chỉ có tên chủ, vào **Tài khoản & nhóm** để mời nhân viên, chờ họ nhận lời mời rồi bấm **Tải lại người phụ trách** trong form giao việc. Việc tải lại giữ nội dung đang nhập.
+
+Tên người nhận hiển thị kèm bộ phận trong cả công việc và bộ mẫu. Chủ không gian thấy thêm nhãn **chỉ theo dõi** cho nhân viên chỉ xem hoặc vai trò không có quyền sửa công việc. Người được giao cần vai trò hỗ trợ sửa công việc và quyền **Được sửa** để tự cập nhật trạng thái. Kế toán ghi nhận thu B2B theo quyền riêng. Tên nhập tay vẫn chỉ dùng để theo dõi và chưa liên kết với tài khoản.
+
 ## Giá/gói và các phần chưa triển khai
 
 Màn **Giá trị & doanh thu** nội bộ có thêm lựa chọn **Tạo công việc theo mẫu tour** và **Báo giá theo số khách và duyệt** để nhóm soạn phương án gói. Đây vẫn là bản nháp: chưa khóa/mở tính năng theo Standard/Pro/Premium, chưa tính phí, chưa tự áp hạn mức tài khoản theo giá.
