@@ -91,7 +91,7 @@ Tên người nhận hiển thị kèm bộ phận trong cả công việc và b
 
 ## Giá/gói và các phần chưa triển khai
 
-Màn **Giá trị & doanh thu** nội bộ có thêm lựa chọn **Tạo công việc theo mẫu tour** và **Báo giá theo số khách và duyệt** để nhóm soạn phương án gói. Đây vẫn là bản nháp: chưa khóa/mở tính năng theo Standard/Pro/Premium, chưa tính phí, chưa tự áp hạn mức tài khoản theo giá.
+Ở mốc phát hành 0.8.0, màn **Giá trị & doanh thu** nội bộ có thêm lựa chọn mẫu công việc và báo giá để soạn phương án gói. Màn này cùng API kế hoạch hiện đã được gỡ theo yêu cầu chủ dự án. Nhóm chuẩn bị giá/gói, giá trị, BMC và P&L trong tài liệu, slide và bảng tính riêng. Website chưa khóa/mở tính năng theo Standard/Pro/Premium, chưa tính phí hoặc tự áp hạn mức tài khoản theo giá.
 
 Chưa triển khai QR thanh toán, tùy chỉnh thương hiệu riêng, tự tính/chia hoa hồng hoặc cam kết hỗ trợ dưới 30 phút. Không dùng tài liệu kinh doanh để ghi các phần này là đã có. Các số tiết kiệm thời gian cần đo bằng người dùng thật; bản QA không phải kết quả khảo sát.
 

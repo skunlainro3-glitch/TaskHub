@@ -52,8 +52,7 @@ Các đường dẫn dưới đây tính từ thư mục gốc repo.
 | `src/print-page.jsx`, `src/print-page.css` | Bản in riêng đặt ở body; In/Lưu PDF qua trình duyệt, không truyền tài liệu sang dịch vụ khác. |
 | `scripts/optimize-tour-images.py`, `src/tour-image-variants.mjs` | Tạo WebP từ ảnh đã có nguồn; danh sách 404 để không tải lại ảnh hỏng. Muốn cập nhật ảnh, sửa nguồn được nhóm duyệt rồi chạy lại script bằng Python/Pillow. |
 | `shared/access.mjs` | Chính sách bộ phận và quyền xem/sửa dùng chung frontend/backend. |
-| `shared/planning.mjs`, `server/planning.mjs` | Kiểm tra/công thức giả định kinh doanh; lưu kế hoạch theo workspace và phiên bản. |
-| `src/workflow-ui.jsx`, `src/planning-ui.jsx` | Sơ đồ vận hành và bản nháp giá trị/gói/doanh thu nội bộ. |
+| `src/workflow-ui.jsx` | Sơ đồ vận hành, người phụ trách và lối vào từng màn hình nghiệp vụ. |
 | `src/sync-status.jsx`, `src/sync-state.mjs` | Trạng thái mới/cũ/offline dựa trên lần đọc thành công. |
 | `server/accounts.mjs` | Token email, thành viên và vòng đời tài khoản. |
 | `server/demo.mjs` | Bộ dữ liệu mẫu tùy chọn; không tạo bằng chứng người thử thật. |
@@ -104,6 +103,8 @@ Frontend giúp nhập dễ hơn; backend mới quyết định dữ liệu có �
 
 `:id` và `:workspace` là giá trị thay vào URL, không phải chữ gửi nguyên. Reviewer có quyền xem/xuất, không sửa dữ liệu. Nhân viên có lời mời và quyền chỉ xem/được sửa; đối tác B2B chưa có tài khoản tự duyệt. Công việc mới có thể gắn `assignee_id`; tên nhập tay cũ vẫn được giữ để đối chiếu.
 
+Màn **Giá trị & doanh thu**, các module planning và API `GET /api/planning`, `PUT /api/planning` đã được gỡ. Bảng `workspace_planning` và migration cũ chỉ được giữ để bảo toàn lịch sử dữ liệu, không còn được ứng dụng đọc/ghi. Nhóm chuẩn bị giá trị, giá/gói, BMC và P&L ngoài website.
+
 ## 4. Hiểu các bảng dữ liệu
 
 | Bảng | Lưu gì? |
@@ -150,7 +151,7 @@ Luồng là nháp → chờ duyệt → đã duyệt hoặc cần sửa. API ki�
 
 Mẫu chứa danh sách việc do nhóm nhập, mốc ngày so với khởi hành, ưu tiên và tài khoản phụ trách tùy chọn. API tính ngày và trả xem trước; lúc áp dụng kiểm tra lại phiên bản tour/mẫu/người phụ trách. Một batch ghi dấu `run_id` cùng toàn bộ việc, nên gửi lại cùng lần tạo không thêm việc lần nữa. Dùng lại mẫu ở lần mới sẽ thêm bộ việc mới; không cập nhật ngược việc cũ. Ngừng dùng mẫu chỉ ẩn mẫu khỏi danh sách đang dùng.
 
-`assignee_id` liên kết việc với tài khoản trong cùng workspace; tên phụ trách vẫn lưu để đọc dữ liệu cũ. Bộ lọc **Việc của tôi** so sánh đúng ID đang đăng nhập, không đoán theo tên giống nhau. Chọn người và ghi dữ liệu đều phải kiểm tra họ còn thuộc workspace; việc chỉ nhập tên không tự gắn tài khoản. Thêm lựa chọn mẫu/báo giá ở kế hoạch gói chỉ phục vụ bản nháp nội bộ, không tạo thuê bao hoặc quyền trả phí.
+`assignee_id` liên kết việc với tài khoản trong cùng workspace; tên phụ trách vẫn lưu để đọc dữ liệu cũ. Bộ lọc **Việc của tôi** so sánh đúng ID đang đăng nhập, không đoán theo tên giống nhau. Chọn người và ghi dữ liệu đều phải kiểm tra họ còn thuộc workspace; việc chỉ nhập tên không tự gắn tài khoản. Giá/gói được soạn ngoài website; sản phẩm chưa tạo thuê bao hoặc quyền trả phí.
 
 ## 5. Sửa ở nguồn gốc, rồi xuất sang cloud
 

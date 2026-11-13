@@ -311,7 +311,7 @@ export function Analytics({ access }) {
           {r.pooling && (
             <section className="panel analytics-panel">
               <h2>Đối soát B2B theo lịch khởi hành</h2>
-              <div className="planning-metrics">
+              <div className="analytics-metrics">
                 {[
                   ["Giá trị phiếu xác nhận", r.pooling.agreed],
                   ["Đã ghi nhận thu lũy kế", r.pooling.paid],

@@ -128,7 +128,7 @@ export function Workflow({ data, access, onNav }) {
                         accounting:
                           "Xem tour/công việc và sổ B2B, ghi nhận thu; không sửa tour/chỗ hoặc xác nhận phiếu, không xem liên hệ tư vấn.",
                         manager:
-                          "Quản lý nghiệp vụ, duyệt báo giá của người khác và kế hoạch nội bộ; không tự cấp quyền nhân viên.",
+                          "Quản lý nghiệp vụ, duyệt báo giá của người khác; không tự cấp quyền nhân viên.",
                         general:
                           "Quyền nghiệp vụ tổng hợp tương thích tài khoản cũ; chủ không gian nên phân vai cụ thể.",
                       }[id]

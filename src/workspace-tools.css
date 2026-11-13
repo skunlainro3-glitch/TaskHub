@@ -77,77 +77,29 @@
 .sync-status.offline {
   color: #99502b;
 }
-.planning-fields {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-}
-.planning-fields .field {
-  margin: 0;
-  min-width: 0;
-}
-.planning-metrics {
+.analytics-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-top: 20px;
 }
-.planning-metrics > div {
+.analytics-metrics > div {
   border: 1px solid var(--border);
   background: #f5f9ff;
   border-radius: 12px;
   padding: 18px;
   min-width: 0;
 }
-.planning-metrics strong {
+.analytics-metrics strong {
   display: block;
   font-size: 23px;
   overflow-wrap: anywhere;
   color: var(--primary-dark);
   margin-top: 8px;
 }
-.planning-metrics span {
+.analytics-metrics span {
   color: var(--muted);
   font-size: 13px;
-}
-.planning-row {
-  border-top: 1px solid var(--border);
-  padding: 20px 0;
-}
-.planning-features {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  margin: 14px 0;
-}
-.planning-toolbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.planning-note {
-  background: #eef5ff;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  color: var(--muted);
-}
-.planning-fieldset {
-  border: 0;
-  padding: 0;
-  margin: 0;
-  min-width: 0;
-  display: grid;
-  gap: 20px;
-}
-.planning-comparison {
-  margin-top: 24px;
-}
-.planning-comparison caption {
-  text-align: left;
-  color: var(--muted);
-  padding-bottom: 12px;
 }
 @media (max-width: 1100px) {
   .workflow-steps {
@@ -156,8 +108,7 @@
 }
 @media (max-width: 700px) {
   .workflow-steps,
-  .planning-fields,
-  .planning-metrics {
+  .analytics-metrics {
     grid-template-columns: 1fr;
   }
   .tool-panel,
@@ -166,8 +117,5 @@
   }
   .workflow-steps small {
     min-height: 0;
-  }
-  .planning-toolbar .btn {
-    flex: 1;
   }
 }

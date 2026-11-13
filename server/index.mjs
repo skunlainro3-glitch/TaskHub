@@ -2,7 +2,6 @@ import http from "node:http";
 import { createAccounts, deleteAccount, canManageTeam, workspacePermission } from './accounts.mjs';
 import { loadDemoWorkspace } from './demo.mjs';
 import { workspaceAccess, requireCapability } from '../shared/access.mjs';
-import { loadPlanning, savePlanning } from './planning.mjs';
 import { listQuotes, getQuote, createQuote, updateQuote, transitionQuote, quoteExportData } from './quotes.mjs';
 import { quoteRows } from '../shared/quotes.mjs';
 import { listTaskPeople, listTaskTemplates, createTaskTemplate, updateTaskTemplate, previewTaskTemplate, applyTaskTemplate, resolveTaskAssignee } from './task-templates.mjs';
@@ -376,7 +375,6 @@ export const server = http.createServer(async (req, res) => {
         if(/^\/api\/inquiries\//.test(p)) requireCapability(actor,'canEditInquiries');
       }
     }
-    if (p==='/api/planning' && method==='GET') return json(res,await loadPlanning(db,await required(req)));
     if (p === '/api/quotes' && method === 'GET') return json(res, await listQuotes(db, await required(req)));
     if (p === '/api/quotes' && method === 'POST') return json(res, await createQuote(db, await required(req), await body(req)), 201);
     const quoteExport = p.match(/^\/api\/quotes\/([^/]+)\/(export\.xlsx|export-data)$/);
@@ -408,7 +406,6 @@ export const server = http.createServer(async (req, res) => {
       const rows=analyticsRows(report);
       return downloadXlsx(res,{name:'Bao cao van hanh',headers:['Phần','Chỉ số','Giá trị','Đơn vị'],rows:rows.map(r=>[r.section,r.metric,r.value,r.unit]),widths:[28,44,28,22]},'taskhub-report');
     }
-    if (p==='/api/planning' && method==='PUT') return json(res,await savePlanning(db,await required(req),await body(req)));
     if (p === '/api/account/security' && method === 'GET') return json(res, await accounts.security(await required(req)));
     if (p === '/api/demo/load' && method === 'POST') {
       limited(req,'demo-load',5); return json(res,await loadDemoWorkspace(db,await required(req)));

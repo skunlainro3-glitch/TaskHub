@@ -6,11 +6,6 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, sep } from "node:path";
 import { workspaceAccess, validDepartment } from "../shared/access.mjs";
-import {
-  emptyPlanning,
-  planningInput,
-  planningResults,
-} from "../shared/planning.mjs";
 import { syncState } from "../src/sync-state.mjs";
 import { qaTour } from "./fixtures.mjs";
 
@@ -32,6 +27,7 @@ test("department permissions separate customer contacts, seat confirmation and r
         .filter(
           ([k]) =>
             k.startsWith("canEdit") ||
+            k === "canApproveQuotes" ||
             k === "canManageDeals" ||
             k === "canRecordReceipts",
         )
@@ -79,73 +75,19 @@ test("department permissions separate customer contacts, seat confirmation and r
     }).canEditTours,
     false,
   );
-  assert.equal(workspaceAccess({ role: "reviewer" }).canEditPlanning, false);
+  assert.equal(workspaceAccess({ role: "reviewer" }).canApproveQuotes, false);
+  assert.equal(workspaceAccess({ role: "operations" }).canApproveQuotes, true);
+  for (const department of ["operations", "sales", "accounting", "general"])
+    assert.equal(
+      workspaceAccess({ role: "staff", department, staff_permission: "editor" }).canApproveQuotes,
+      false,
+    );
+  assert.equal(
+    workspaceAccess({ role: "staff", department: "manager", staff_permission: "editor" }).canApproveQuotes,
+    true,
+  );
   assert.throws(
     () => validDepartment(["operations"]),
-    (e) => e.status === 400,
-  );
-});
-
-test("planning distinguishes missing values, zero, one-time revenue and negative value", () => {
-  assert.ok(
-    Object.values(planningResults(emptyPlanning())).every((v) => v === null),
-  );
-  const plan = {
-    value: {
-      monthlyTasks: 120,
-      minutesBefore: 15,
-      minutesAfter: 5,
-      hourlyCost: 60000,
-      monthlyFee: 200000,
-    },
-    plans: [
-      {
-        name: "QA only",
-        price: 200000,
-        customers: 3,
-        features: ["tours", "portal"],
-      },
-    ],
-    extras: [{ name: "QA one-time", price: 50000, quantity: 2 }],
-  };
-  assert.deepEqual(planningResults(plan), {
-    hours: 20,
-    laborValue: 1200000,
-    netValue: 1000000,
-    mrr: 600000,
-    annualRunRate: 7200000,
-    oneTime: 100000,
-  });
-  plan.value.minutesAfter = 20;
-  assert.equal(planningResults(plan).netValue, -800000);
-  plan.plans[0].price = 0;
-  assert.equal(planningResults(plan).mrr, 0);
-  plan.plans[0].customers = null;
-  assert.equal(planningResults(plan).mrr, null);
-  for (const bad of [
-    null,
-    {},
-    { ...plan, extras: [null] },
-    { ...plan, plans: [{ name: "QA", price: -1, customers: 2, features: [] }] },
-    { ...plan, plans: [{ name: "QA", customers: 1.5, features: [] }] },
-    { ...plan, plans: [{ name: "QA", features: ["invented"] }] },
-    { ...plan, extras: Array(5).fill({}) },
-  ])
-    assert.throws(
-      () => planningInput(bad),
-      (e) => e.status === 400,
-    );
-  assert.throws(
-    () =>
-      planningResults({
-        ...plan,
-        value: {
-          monthlyTasks: 1e12,
-          minutesBefore: 1e12,
-          minutesAfter: 0,
-          hourlyCost: 1e12,
-        },
-      }),
     (e) => e.status === 400,
   );
 });
@@ -161,7 +103,7 @@ test("freshness becomes stale after 15 seconds even without a fetch error", () =
   assert.equal(syncState({ lastSuccess: null }), "loading");
 });
 
-test("role API blocks direct writes/exports, scopes planning and refreshes permission changes", async () => {
+test("role API blocks direct writes/exports and refreshes permission changes", async () => {
   const dir = mkdtempSync(join(tmpdir(), "taskhub-cp4-"));
   const base = "http://127.0.0.1:" + (5700 + Math.floor(Math.random() * 200));
   const child = spawn(process.execPath, ["server/index.mjs"], {
@@ -403,41 +345,11 @@ test("role API blocks direct writes/exports, scopes planning and refreshes permi
       status: "done",
       version: 1,
     });
-    const initial = await request("/planning", "GET", null, owner.cookie);
-    assert.equal(initial.body.version, 0);
-    for (const department of ["operations", "sales", "accounting", "general"]) {
-      await denied(actors[department], "/planning", "GET");
-      await denied(actors[department], "/planning", "PUT", {
-        plan: emptyPlanning(),
-        version: 0,
-      });
-    }
-    const concurrent = await Promise.all(
-      [owner, actors.manager].map((a) =>
-        request(
-          "/planning",
-          "PUT",
-          { plan: emptyPlanning(), version: 0 },
-          a.cookie,
-        ),
-      ),
-    );
-    assert.deepEqual(concurrent.map((r) => r.status).sort(), [200, 409]);
-    assert.equal(
-      (await request("/planning", "GET", null, other.cookie)).body.version,
-      0,
-    );
-    assert.equal(
-      (
-        await request(
-          "/planning",
-          "PUT",
-          { plan: emptyPlanning(), version: 0 },
-          owner.cookie,
-        )
-      ).status,
-      409,
-    );
+    for (const method of ["GET", "PUT"])
+      assert.equal(
+        (await request("/planning", method, {}, owner.cookie)).status,
+        404,
+      );
     assert.equal(
       (
         await request(
@@ -478,17 +390,6 @@ test("role API blocks direct writes/exports, scopes planning and refreshes permi
       version: 2,
       paid: 200,
     });
-    assert.equal(
-      (
-        await request(
-          "/planning",
-          "PUT",
-          { plan: emptyPlanning(), version: 1 },
-          actors.manager.cookie,
-        )
-      ).status,
-      200,
-    );
     assert.equal(
       (await request("/account", "DELETE", {}, owner.cookie)).status,
       200,

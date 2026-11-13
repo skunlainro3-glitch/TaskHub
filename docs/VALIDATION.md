@@ -1,5 +1,13 @@
 # Kiểm chứng TaskHub
 
+## Gỡ Giá trị & doanh thu — 13/11/2026
+
+- Theo yêu cầu chủ dự án, gỡ menu, màn hình, công thức và API kế hoạch nội bộ. Dọn module khỏi nguồn xuất Sites; giữ nguyên bảng/migration lịch sử và dữ liệu đã lưu. Giá trị, giá/gói, BMC và P&L được nhóm chuẩn bị ngoài website.
+- Tách quyền duyệt báo giá thành `canApproveQuotes`, giữ nguyên chủ không gian/quản lý có quyền sửa. Bảo vệ thay đổi chưa lưu của báo giá vẫn hoạt động. Giữ Báo cáo vận hành và Quy trình vận hành; dọn mô tả kế hoạch khỏi bảng vai trò.
+- `npm test` đạt **129/129** trên SQLite và **129/129** trên libSQL. `npm run build` và `npm run build:pages` đạt. Lượt chạy sandbox đầu không mở được các server loopback; chạy với quyền localhost phù hợp đạt.
+- Ba bộ browser local `cp4-ui`, `quotes-ui`, `cp4-delivery-ui` đạt: menu đã gỡ cho chủ và các bộ phận, phân quyền/đổi quyền, duyệt báo giá, Excel/PDF, báo cáo, offline và bố cục 320/390/768/1440px. Đã xem ảnh workflow desktop, menu đúng và không còn trang đã gỡ. Không gian QA riêng được xóa sau kiểm thử. Bài kiểm tra quản lý mở lại Báo giá sau đổi quyền để tải quyền của module; không thay cơ chế tải quyền báo giá trong lần gỡ này.
+- `get_site` đọc được Sites cũ, nhưng `create_source_repository_write_credential` trả `NOT_FOUND / Sites project not found`; chưa thể phát hành nguồn backend Sites qua kết nối hiện tại. Pages chặn GET/PUT và mọi đường con `/api/planning` bằng 404 trước khi gọi backend cũ. Bộ test gateway xác nhận không chuyển các yêu cầu này lên upstream. Phát hành chính dùng Cloudflare Pages trên account/project hiện có; metadata deployment được ghi sau khi triển khai thành công.
+
 ## Chọn tài khoản phụ trách — 13/11/2026
 
 - Chưa tái hiện lỗi admin bị chặn giao việc. Mỗi công việc dùng một `assignee_id`. Danh sách gồm thành viên đã nhận lời mời cùng không gian. Người chỉ xem hoặc Kế toán có thể được ghi là phụ trách nhưng không có quyền sửa công việc.
