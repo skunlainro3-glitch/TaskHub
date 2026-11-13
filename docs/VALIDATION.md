@@ -1,5 +1,21 @@
 # Kiểm chứng TaskHub
 
+## Gỡ Giá trị & doanh thu — 13/11/2026
+
+- Theo yêu cầu chủ dự án, gỡ menu, màn hình, công thức và API kế hoạch nội bộ. Dọn module khỏi nguồn xuất Sites; giữ nguyên bảng/migration lịch sử và dữ liệu đã lưu. Giá trị, giá/gói, BMC và P&L được nhóm chuẩn bị ngoài website.
+- Tách quyền duyệt báo giá thành `canApproveQuotes`, giữ nguyên chủ không gian/quản lý có quyền sửa. Bảo vệ thay đổi chưa lưu của báo giá vẫn hoạt động. Giữ Báo cáo vận hành và Quy trình vận hành; dọn mô tả kế hoạch khỏi bảng vai trò.
+- `npm test` đạt **129/129** trên SQLite và **129/129** trên libSQL. `npm run build` và `npm run build:pages` đạt. Lượt chạy sandbox đầu không mở được các server loopback; chạy với quyền localhost phù hợp đạt.
+- Ba bộ browser local `cp4-ui`, `quotes-ui`, `cp4-delivery-ui` đạt: menu đã gỡ cho chủ và các bộ phận, phân quyền/đổi quyền, duyệt báo giá, Excel/PDF, báo cáo, offline và bố cục 320/390/768/1440px. Đã xem ảnh workflow desktop, menu đúng và không còn trang đã gỡ. Không gian QA riêng được xóa sau kiểm thử. Bài kiểm tra quản lý mở lại Báo giá sau đổi quyền để tải quyền của module; không thay cơ chế tải quyền báo giá trong lần gỡ này.
+- `get_site` đọc được Sites cũ, nhưng `create_source_repository_write_credential` trả `NOT_FOUND / Sites project not found`; chưa thể phát hành nguồn backend Sites qua kết nối hiện tại. Pages chặn GET/PUT và mọi đường con `/api/planning` bằng 404 trước khi gọi backend cũ. Bộ test gateway xác nhận không chuyển các yêu cầu này lên upstream. Phát hành chính dùng Cloudflare Pages trên account/project hiện có; metadata deployment được ghi sau khi triển khai thành công.
+- Runtime `67f09028b8b7b07b38a6629999af73a0bde21845` đã đẩy lên `dev`; [CI 43382366597](https://github.com/skunlainro3-glitch/TaskHub/actions/runs/43382366597) đạt. Pages production `bb4130cc-572c-44ee-9224-8749ceb4bde6` triển khai thành công tại https://taskhub-travel.pages.dev/. Kiểm tra public xác nhận bundle mới, GET/PUT `/api/planning` trả 404 và `/api/health` trả 200. `cp4-ui` đạt trên web production với chủ và các vai trò nhân viên, đổi quyền quản lý, phục hồi mạng và bố cục 320/390/768/1440px; không gian QA đã xóa. Giữ nguyên backend Sites version 25, D1 và audience hiện có.
+
+## Chọn tài khoản phụ trách — 13/11/2026
+
+- Chưa tái hiện lỗi admin bị chặn giao việc. Mỗi công việc dùng một `assignee_id`. Danh sách gồm thành viên đã nhận lời mời cùng không gian. Người chỉ xem hoặc Kế toán có thể được ghi là phụ trách nhưng không có quyền sửa công việc.
+- Giao diện hiện bộ phận bên cạnh tên, chủ không gian thấy nhãn chỉ theo dõi theo quyền hiện có. Thêm trạng thái tải, nút tải lại và hướng dẫn khi danh sách chỉ có chủ. Tải lại giữ nội dung, tour, hạn và người đang chọn. Bộ mẫu dùng cùng nhãn người nhận.
+- `npm test` đạt 129/129. Kiểm tra bộ mẫu trên libSQL đạt 14/14. Build frontend và Pages đạt. `tests/task-assignment-ui.mjs` đạt trên Node local với API cũ: hai người trùng tên thuộc hai bộ phận, giao hai việc riêng, lọc Việc của tôi và đổi trạng thái đúng tài khoản, role 403, lời mời chờ/đã nhận, tải chậm, lỗi tải và thử lại. Rà ảnh 320/1440px đạt, không có lỗi JavaScript trong luồng đã thử. Tài khoản và không gian QA được xóa sau kiểm thử.
+- Bản sửa giao diện dùng API `/task-people` và `/team` hiện có. Không cần đổi API, schema hoặc dữ liệu. Commit `0c1c61f` đã đẩy lên `dev`; [CI 43374372778](https://github.com/skunlainro3-glitch/TaskHub/actions/runs/43374372778) đạt. Pages production `1fadd6ba-35ea-4a2c-9e41-5b29d9033043` triển khai thành công sau khi khôi phục phiên Wrangler. Bộ kiểm thử giao việc trên **https://taskhub-travel.pages.dev** đạt với backend hiện có, gồm người nhận nhiều vai trò, giữ nội dung khi tải lại/lỗi tải, Việc của tôi, trạng thái và giao diện 320/1440px. Không gian QA riêng đã xóa sau kiểm thử.
+
 ## Báo giá có duyệt và mẫu công việc 0.8.0 — 09/11/2026
 
 - Runtime GitHub `66b2b257095fd525c44bc932f3ce8bc2b76cb9c9`, trên `dev`; [PR #9](https://github.com/skunlainro3-glitch/TaskHub/pull/9) vào `main` chờ chủ repo duyệt. Không thay đổi hoặc vượt bảo vệ `main`. [CI push 42506881237](https://github.com/skunlainro3-glitch/TaskHub/actions/runs/42506881237) và [CI PR 42506940336](https://github.com/skunlainro3-glitch/TaskHub/actions/runs/42506940336) đều đạt, gồm hai bộ browser mới.

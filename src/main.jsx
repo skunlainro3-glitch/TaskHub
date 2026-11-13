@@ -36,7 +36,6 @@ import {
   Upload,
   Settings,
   GitBranch,
-  Calculator,
   FileText,
 } from "lucide-react";
 import "./styles.css";
@@ -45,13 +44,14 @@ import { startInteractions, flushInteractions } from "./interactions.mjs";
 import { createPortalUI } from "./portal-ui.jsx";
 import { createAccountUI } from "./accounts-ui.jsx";
 import { createDemoUI } from "./demo-ui.jsx";
-import { createPlanningUI } from "./planning-ui.jsx";
 import { createQuotesUI } from "./quotes-ui.jsx";
 import { createTaskTemplatesUI } from "./task-templates-ui.jsx";
 import { Workflow } from "./workflow-ui.jsx";
 import { Analytics } from "./analytics-ui.jsx";
 import { SyncStatus } from "./sync-status.jsx";
 import { workspaceAccess } from "../shared/access.mjs";
+import { taskPersonLabel } from "../shared/task-templates.mjs";
+import { loadTaskPeople } from "./task-people.mjs";
 import { api } from "./api.mjs";
 import { startPolling } from "./polling.mjs";
 import { tourDeletionSummary } from "./pooling-view.mjs";
@@ -82,7 +82,6 @@ const navItems = [
   ["pooling", "Ghép tour B2B", Handshake],
   ["inbox", "Yêu cầu tư vấn", Inbox],
   ["workflow", "Quy trình vận hành", GitBranch],
-  ["business", "Giá trị & doanh thu", Calculator],
   ["account", "Tài khoản & nhóm", Settings],
 ];
 function Logo() {
@@ -571,6 +570,7 @@ function TourEditor({
 function TaskEditor({
   tours,
   task,
+  canManageTeam,
   defaultTourId,
   onClose,
   onSave,
@@ -581,11 +581,14 @@ function TaskEditor({
     [conflict, setConflict] = useState(false),
     [confirmDelete, setConfirmDelete] = useState(false);
   const [people, setPeople] = useState([]);
+  const [peopleLoading, setPeopleLoading] = useState(true);
   const [peopleError, setPeopleError] = useState("");
   const [assigneeId, setAssigneeId] = useState(task?.assignee_id || "");
   const loadPeople = async () => {
-    try { const result = await api("/task-people"); setPeople(result.people); setPeopleError(""); }
+    setPeopleLoading(true);
+    try { setPeople(await loadTaskPeople(api, canManageTeam)); setPeopleError(""); }
     catch (error) { setPeopleError(error.message); }
+    finally { setPeopleLoading(false); }
   };
   useEffect(() => { void loadPeople(); }, []);
   useEffect(() => { setAssigneeId(task?.assignee_id || ""); }, [task?.id, task?.version]);
@@ -695,14 +698,21 @@ function TaskEditor({
             ))}
           </select>
         </Field>
-        <Field label="Tài khoản phụ trách" hint="Chọn tài khoản để công việc hiện trong Việc của tôi. Chưa tự gửi thông báo.">
-          <select name="assignee_id" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)}>
+        <Field label="Tài khoản phụ trách" hint="Mỗi việc có một người phụ trách. Danh sách gồm người đã nhận lời mời vào cùng không gian. Người nhận cần quyền sửa công việc để cập nhật trạng thái.">
+          <select name="assignee_id" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} disabled={peopleLoading || busy}>
             <option value="">Nhập tên để theo dõi</option>
             {assigneeId && !people.some((person) => person.id === assigneeId) && <option value={assigneeId}>Tài khoản cũ — cần chọn lại</option>}
-            {people.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
+            {people.map((person) => <option key={person.id} value={person.id}>{taskPersonLabel(person)}</option>)}
           </select>
         </Field>
-        {peopleError && <div className="workspace-notice"><p>Chưa tải được danh sách người phụ trách: {peopleError}</p><button type="button" className="text-btn" onClick={loadPeople}>Thử tải danh sách</button></div>}
+        <div className="task-people-status">
+          {peopleLoading ? <p role="status">Đang tải người phụ trách…</p> : <>
+            {peopleError && <p role="alert">Chưa tải được danh sách người phụ trách: {peopleError}</p>}
+            {!peopleError && people.length < 2 && <p>Mời thêm nhân viên tại Tài khoản & nhóm, rồi tải lại danh sách sau khi họ nhận lời mời.</p>}
+            {people.find((person) => person.id === assigneeId)?.can_edit_tasks === false && <p>Người này chỉ theo dõi công việc. Chủ không gian có thể kiểm tra vai trò và quyền tại Tài khoản & nhóm.</p>}
+          </>}
+          <button type="button" className="text-btn" onClick={loadPeople} disabled={peopleLoading || busy}>Tải lại người phụ trách</button>
+        </div>
         {!assigneeId && <Field label="Tên người phụ trách" hint="Tên nhập tay không được tự gắn với tài khoản cùng tên.">
           <input
             name="assignee"
@@ -780,7 +790,7 @@ function TaskEditor({
           >
             Hủy
           </Button>
-          <Button disabled={busy || !tours.length}>
+          <Button disabled={busy || peopleLoading || !tours.length}>
             {busy ? "Đang lưu…" : task ? "Lưu công việc" : "Giao công việc"}
             <Check size={16} />
           </Button>
@@ -1118,10 +1128,9 @@ function Workspace({ user, onLogout, onPortal, notify }) {
   const [poolTourFilter, setPoolTourFilter] = useState("");
   const [catalog, setCatalog] = useState(null);
   const [catalogLoading, setCatalogLoading] = useState(false);
-  const [planningDirty, setPlanningDirty] = useState(false);
   const [quoteDirty, setQuoteDirty] = useState(false);
-  const leaveUnsaved = () => (!planningDirty && !quoteDirty) || confirm("Có thay đổi chưa lưu. Rời khỏi và bỏ thay đổi?");
-  const changeNav = (id) => { if(id!==nav && leaveUnsaved()) {setPlanningDirty(false);setQuoteDirty(false);setNav(id);} };
+  const leaveUnsaved = () => !quoteDirty || confirm("Có thay đổi chưa lưu. Rời khỏi và bỏ thay đổi?");
+  const changeNav = (id) => { if(id!==nav && leaveUnsaved()) {setQuoteDirty(false);setNav(id);} };
   const access = data?.access || workspaceAccess({ ...user, workspace_permission: permission });
   const [mobile, setMobile] = useState(
     () => matchMedia("(max-width: 650px)").matches,
@@ -1272,12 +1281,11 @@ function Workspace({ user, onLogout, onPortal, notify }) {
   const allowedNav = navItems.filter(([id]) =>
     (id !== "inbox" || access.canReadInquiries) &&
     (id !== "quotes" || access.canReadInquiries) &&
-    (id !== "pooling" || access.canReadPooling) &&
-    (id !== "business" || access.canReadPlanning),
+    (id !== "pooling" || access.canReadPooling),
   );
   useEffect(() => {
     if (!allowedNav.some(([id]) => id === nav)) { setNav("dashboard"); setEditor(null); }
-  }, [nav, access.canReadInquiries, access.canReadPooling, access.canReadPlanning]);
+  }, [nav, access.canReadInquiries, access.canReadPooling]);
   const current = allowedNav.find((i) => i[0] === nav);
   const minimumReserved = (id) =>
     (data?.pooling || [])
@@ -1303,7 +1311,6 @@ function Workspace({ user, onLogout, onPortal, notify }) {
     inbox: "Tiếp nhận yêu cầu ngay cả ngoài giờ làm việc.",
     account: "Gửi lời mời và phân quyền cho người cùng làm việc.",
     workflow: "Các bước vận hành, người phụ trách và phạm vi của từng vai trò.",
-    business: "Bản nháp nội bộ: lượng hóa giá trị, soạn gói và dự tính doanh thu.",
   };
   return (
     <div className="app-shell">
@@ -1727,7 +1734,6 @@ function Workspace({ user, onLogout, onPortal, notify }) {
               )}
               {nav === "workflow" && <Workflow data={data} access={access} onNav={setNav} />}
               {nav === "analytics" && <Analytics access={access} />}
-              {nav === "business" && access.canReadPlanning && <BusinessPlanning access={access} notify={notify} onDirtyChange={setPlanningDirty} />}
             </>
           )}
           <footer className="app-footer">
@@ -1774,6 +1780,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
       )}
       {editor?.type === "task" && access.canEditTasks && (
         <TaskEditor
+          canManageTeam={access.canManageTeam}
           tours={data.tours}
           defaultTourId={editor.tour?.id}
           task={editor.task}
@@ -1788,7 +1795,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
         />
       )}
       {editor?.type === "task-templates" && access.canEditTasks && (
-        <TaskTemplates tours={data.tours} notify={notify} onClose={() => setEditor(null)} onApplied={reload} onRefresh={reload} />
+        <TaskTemplates tours={data.tours} canManageTeam={access.canManageTeam} notify={notify} onClose={() => setEditor(null)} onApplied={reload} onRefresh={reload} />
       )}
       {editor?.type === "catalog" && access.canEditTours && catalog && (
         <CatalogPicker
@@ -1848,7 +1855,6 @@ const { DemoLoader } = createDemoUI({
   ErrorBox,
   api,
 });
-const BusinessPlanning = createPlanningUI({Button, Field, ErrorBox, api, money});
 const Quotes = createQuotesUI({Button, Field, Modal, ErrorBox, Badge, money, date, api});
 const TaskTemplates = createTaskTemplatesUI({Button, Field, Modal, ErrorBox, api, date});
 const { TourCard, CatalogPicker, Portal, TourDetails } = createPortalUI({

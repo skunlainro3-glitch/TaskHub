@@ -10,6 +10,16 @@ const client = (path, options = {}) => new Request(base + path, {
 });
 const noFetch = () => { throw Error('Upstream must not be called.'); };
 
+test('Pages retires the internal planner without forwarding reads or writes', async () => {
+  for (const path of ['/api/planning', '/api/planning/', '/api/planning?version=1']) {
+    for (const method of ['GET', 'PUT']) {
+      const response = await handlePages(client(path, { method, ...(method === 'PUT' ? { body: '{}' } : {}) }), env, noFetch);
+      assert.equal(response.status, 404);
+      assert.equal(response.headers.get('Cache-Control'), 'no-store');
+    }
+  }
+});
+
 test('Pages allows the bounded bulk import body while keeping other API routes small',async()=>{
   const payload='x'.repeat(40000);
   const response=await handlePages(client('/api/tours/import',{method:'POST',body:payload}),env,async(url,init)=>{

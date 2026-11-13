@@ -16,6 +16,10 @@ function secure(response, dynamic = false) {
 
 export async function handlePages(request, env, fetchUpstream = fetch) {
   const url = new URL(request.url);
+  // Retire the former internal planner even while the legacy API is deployed.
+  if (url.pathname === '/api/planning' || url.pathname.startsWith('/api/planning/')) {
+    return jsonError('Không tìm thấy API.', 404);
+  }
   if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
     if (!env.TASKHUB_PROXY_SECRET || env.TASKHUB_PROXY_SECRET.length < 32) {
       return jsonError('Kết nối dịch vụ chưa được cấu hình.', 503);

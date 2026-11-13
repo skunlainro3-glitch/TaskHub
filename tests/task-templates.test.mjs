@@ -20,10 +20,10 @@ test('task templates: relative schedules, tenant assignment, version guards and 
   const db = await openDatabase(dir);
   try {
     for (const workspace of ['team', 'other']) await seedWorkspace(db, workspace, workspace);
-    async function addUser(id, role, workspace = 'team', permission = 'editor') {
+    async function addUser(id, role, workspace = 'team', permission = 'editor', department = 'operations') {
       await db.prepare('INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)').run(id, id + '@example.test', id, 'test-hash', workspace, role, '', at(), 'test');
-      if (role === 'staff') await db.prepare('INSERT INTO workspace_members(user_id,workspace,permission,created,department) VALUES (?,?,?,?,?)').run(id, workspace, permission, at(), 'operations');
-      return { id, name: id, role, workspace, workspace_permission: permission, department: 'operations' };
+      if (role === 'staff') await db.prepare('INSERT INTO workspace_members(user_id,workspace,permission,created,department) VALUES (?,?,?,?,?)').run(id, workspace, permission, at(), department);
+      return { id, name: id, role, workspace, workspace_permission: permission, department };
     }
     const owner = await addUser('owner', 'operations'), staff = await addUser('operator', 'staff');
     const viewer = await addUser('viewer', 'staff', 'team', 'viewer'), reviewer = await addUser('reviewer', 'reviewer');
@@ -53,6 +53,24 @@ test('task templates: relative schedules, tenant assignment, version guards and 
       assert.deepEqual(await resolveTaskAssignee(db, owner, { assignee_id: staff.id, assignee: 'ignore manual name' }), { assignee: staff.name, assignee_id: staff.id });
       await assert.rejects(resolveTaskAssignee(db, owner, { assignee_id: other.id }), rejected(409));
       await assert.rejects(resolveTaskAssignee(db, owner, null), rejected(400));
+    });
+    await t.test('admin can assign multiple accepted members while assignment choices preserve tenant privacy', async () => {
+      const admin = await addUser('assignment-admin', 'admin');
+      const sales = await addUser('assignment-sales', 'staff', 'team', 'editor', 'sales');
+      const accounting = await addUser('assignment-accounting', 'staff', 'team', 'editor', 'accounting');
+      const revoked = await addUser('assignment-revoked', 'staff');
+      await db.prepare('DELETE FROM workspace_members WHERE user_id=?').run(revoked.id);
+      await db.prepare('INSERT INTO workspace_invites(id,token,workspace,email,permission,invited_by,expires,created,department) VALUES (?,?,?,?,?,?,?,?,?)')
+        .run('pending-assignment', 'pending-assignment-token', 'team', 'pending-assignment@example.test', 'editor', admin.id, Date.now() + 60000, at(), 'operations');
+
+      const { people } = await listTaskPeople(db, admin);
+      for (const id of [admin.id, staff.id, sales.id, accounting.id, viewer.id]) {
+        const person = people.find((member) => member.id === id);
+        assert(person, 'Accepted member should appear in assignment choices');
+        assert.deepEqual(await resolveTaskAssignee(db, admin, { assignee_id: id }), { assignee_id: id, assignee: person.name });
+      }
+      assert(people.every((person) => ![other.id, reviewer.id, revoked.id, 'pending-assignment'].includes(person.id)));
+      assert(people.every((person) => Object.keys(person).sort().join(',') === 'department,id,name'));
     });
     await t.test('write permission is checked by the backend', async () => {
       await assert.rejects(createTaskTemplate(db, viewer, body()), rejected(403));

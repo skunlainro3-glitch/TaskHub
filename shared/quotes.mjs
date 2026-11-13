@@ -36,7 +36,7 @@ export function quoteAccess(user) {
   return {
     canRead: access.canReadInquiries,
     canEdit: access.canEditInquiries,
-    canApprove: access.canEditPlanning,
+    canApprove: access.canApproveQuotes,
     canApproveOwn: access.canManageTeam,
   };
 }

@@ -2,6 +2,8 @@
 
 Bản **0.8.0 — 09/11/2026** đã triển khai và kiểm tra tại https://taskhub-travel.pages.dev/, bổ sung báo giá theo số khách có bước duyệt, bộ mẫu công việc theo tour và bộ lọc **Việc của tôi** theo tài khoản. Xem [cách dùng và kiểm tra 0.8.0](docs/RELEASE_0_8_0.md). Mã mới trên `dev`, [PR #9](https://github.com/skunlainro3-glitch/TaskHub/pull/9) chờ chủ repo duyệt vào `main`; cả hai CI của commit tính năng đã đạt. `main` là nhánh chính, mặc định và được bảo vệ; team không push thẳng vào nhánh này.
 
+Mục **Giá trị & doanh thu** và API kế hoạch nội bộ đã được gỡ theo yêu cầu chủ dự án. Giá/gói, giá trị mang lại, BMC và P&L được chuẩn bị trong tài liệu, slide và bảng tính riêng của nhóm. **Báo cáo vận hành** và **Quy trình vận hành** vẫn phục vụ nghiệp vụ tour.
+
 Bản **0.7.3** đã phát hành ngày **04/11/2026**, có [hướng dẫn demo CP4 dự phòng](docs/CP4_DEMO_0_7_3.md). Giữ nguyên các tag đã phát hành. Commit/tag/deployment đã kiểm chứng được ghi tại [VALIDATION](docs/VALIDATION.md).
 
 Các đoạn mô tả 0.7.2/0.7.0/0.6.0 bên dưới là lịch sử thay đổi; hướng dẫn thao tác hiện hành nằm trong tài liệu CP4 trên.

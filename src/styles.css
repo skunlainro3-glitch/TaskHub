@@ -1224,6 +1224,15 @@ textarea {
   font-weight: 400;
   color: var(--text-secondary);
 }
+.task-people-status {
+  margin: -8px 0 20px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.task-people-status p {
+  margin: 0 0 6px;
+}
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

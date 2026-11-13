@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, Trash2, ArrowLeft, RefreshCw } from 'lucide-react';
-import { taskTemplateInput } from '../shared/task-templates.mjs';
+import { taskTemplateInput, taskPersonLabel } from '../shared/task-templates.mjs';
+import { loadTaskPeople } from './task-people.mjs';
 import './task-templates.css';
 
 const blankEntry = () => ({ title: '', offset_days: 0, priority: 'normal', assignee_id: null });
 
 export function createTaskTemplatesUI({ Button, Field, Modal, ErrorBox, api, date }) {
-  return function TaskTemplates({ tours, onClose, onApplied, onRefresh, notify }) {
+  return function TaskTemplates({ tours, canManageTeam, onClose, onApplied, onRefresh, notify }) {
     const [templates, setTemplates] = useState([]), [people, setPeople] = useState([]);
     const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState('');
     const [mode, setMode] = useState('list'), [selected, setSelected] = useState(null);
@@ -20,8 +21,8 @@ export function createTaskTemplatesUI({ Button, Field, Modal, ErrorBox, api, dat
     async function load() {
       setLoading(true);
       try {
-        const [result, members] = await Promise.all([api('/task-templates'), api('/task-people')]);
-        setTemplates(result.templates); setPeople(members.people); setError('');
+        const [result, members] = await Promise.all([api('/task-templates'), loadTaskPeople(api, canManageTeam)]);
+        setTemplates(result.templates); setPeople(members); setError('');
       } catch (error) { setError(error.message); }
       finally { setLoading(false); }
     }
@@ -110,14 +111,14 @@ export function createTaskTemplatesUI({ Button, Field, Modal, ErrorBox, api, dat
             <h3>Công việc {index + 1}</h3>
             <Field label={'Nội dung công việc ' + (index + 1)}><input required maxLength="160" value={entry.title} onChange={(event) => editEntry(index, 'title', event.target.value)} /></Field>
             <div className="form-grid"><Field label={'Mốc ngày công việc ' + (index + 1)}><input type="number" min="-365" max="365" step="1" required value={entry.offset_days} onChange={(event) => editEntry(index, 'offset_days', event.target.value === '' ? '' : Number(event.target.value))} /></Field><Field label={'Ưu tiên công việc ' + (index + 1)}><select value={entry.priority} onChange={(event) => editEntry(index, 'priority', event.target.value)}><option value="normal">Bình thường</option><option value="high">Cao</option></select></Field></div>
-            <Field label={'Tài khoản phụ trách công việc ' + (index + 1)}><select value={entry.assignee_id || ''} onChange={(event) => editEntry(index, 'assignee_id', event.target.value || null)}><option value="">Chọn khi dùng bộ mẫu</option>{entry.assignee_id && !people.some((person) => person.id === entry.assignee_id) && <option value={entry.assignee_id}>Tài khoản cũ — cần chọn lại</option>}{people.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}</select></Field>
+            <Field label={'Tài khoản phụ trách công việc ' + (index + 1)}><select value={entry.assignee_id || ''} onChange={(event) => editEntry(index, 'assignee_id', event.target.value || null)}><option value="">Chọn khi dùng bộ mẫu</option>{entry.assignee_id && !people.some((person) => person.id === entry.assignee_id) && <option value={entry.assignee_id}>Tài khoản cũ — cần chọn lại</option>}{people.map((person) => <option key={person.id} value={person.id}>{taskPersonLabel(person)}</option>)}</select></Field>
             {form.entries.length > 1 && <button className="text-btn" type="button" onClick={() => change({ ...form, entries: form.entries.filter((_, i) => i !== index) })}><Trash2 size={15} />Bỏ công việc {index + 1}</button>}
           </section>)}
           <div className="button-row">{form.entries.length < 20 && <Button type="button" variant="ghost" onClick={() => change({ ...form, entries: [...form.entries, blankEntry()] })}><Plus size={16} />Thêm công việc</Button>}<Button type="submit" disabled={busy}>{busy ? 'Đang lưu…' : 'Lưu bộ mẫu'}</Button></div>
         </fieldset></form>}
         {mode === 'apply' && <>
           <h3>{selected.name}</h3>
-          <form onSubmit={showPreview}><fieldset disabled={busy} className="task-template-fields"><Field label="Tour áp dụng"><select required value={tourId} onChange={(event) => { setTourId(event.target.value); setPreview(null); }}><option value="">Chọn tour</option>{tours.map((tour) => <option key={tour.id} value={tour.id}>{tour.title} · {date(tour.departure)}</option>)}</select></Field><Field label="Phụ trách các việc chưa có người"><select value={defaultPerson} onChange={(event) => { setDefaultPerson(event.target.value); setPreview(null); }}><option value="">Để chưa phân công</option>{people.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}</select></Field><Button type="submit" variant="ghost">Xem trước công việc</Button></fieldset></form>
+          <form onSubmit={showPreview}><fieldset disabled={busy} className="task-template-fields"><Field label="Tour áp dụng"><select required value={tourId} onChange={(event) => { setTourId(event.target.value); setPreview(null); }}><option value="">Chọn tour</option>{tours.map((tour) => <option key={tour.id} value={tour.id}>{tour.title} · {date(tour.departure)}</option>)}</select></Field><Field label="Phụ trách các việc chưa có người"><select value={defaultPerson} onChange={(event) => { setDefaultPerson(event.target.value); setPreview(null); }}><option value="">Để chưa phân công</option>{people.map((person) => <option key={person.id} value={person.id}>{taskPersonLabel(person)}</option>)}</select></Field><Button type="submit" variant="ghost">Xem trước công việc</Button></fieldset></form>
           {preview && <section className="task-template-preview"><h3>{preview.rows.length} công việc sẽ được thêm</h3><p>Kiểm tra hạn và người phụ trách. Dùng lại bộ mẫu ở lần khác sẽ tạo thêm một bộ việc.</p><ol>{preview.rows.map((row, index) => <li key={index}><strong>{row.title}</strong><span>Hạn {date(row.due)} · {row.assignee} · {row.priority === 'high' ? 'Ưu tiên cao' : 'Bình thường'}</span></li>)}</ol><Button type="button" onClick={apply} disabled={busy}>{busy ? 'Đang tạo…' : 'Tạo ' + preview.rows.length + ' công việc'}</Button></section>}
         </>}
       </div>

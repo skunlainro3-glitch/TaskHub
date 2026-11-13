@@ -2,6 +2,8 @@
 
 Cập nhật 04/11/2026. Tài liệu CP3 cũ được rút gọn để tránh hướng dẫn thao tác trên các màn đã xóa. Trạng thái hiện hành và kịch bản nằm ở [Demo CP4 0.7.3](CP4_DEMO_0_7_3.md), [bàn giao Tuấn/Huy](CP4_TUAN_HUY_HANDOFF.md), [P1–P3/S-1–S-4](CP2_FEATURE_MAP.md) và [VALIDATION](VALIDATION.md).
 
+Mục **Giá trị & doanh thu** và API kế hoạch nội bộ hiện đã được gỡ. Giá trị, giá/gói, BMC và P&L vẫn thuộc phần tài liệu, slide và bảng tính do nhóm chuẩn bị ngoài website; demo nghiệp vụ giữ **Quy trình vận hành** và **Báo cáo vận hành**.
+
 Web: https://taskhub-travel.pages.dev/ · Code làm việc: https://github.com/skunlainro3-glitch/TaskHub/tree/dev. Mở PR `dev → main` để chủ repo duyệt; `main` là nhánh chính, mặc định và được bảo vệ, team không push thẳng vào `main`.
 
 ## Phần FE/BE để chứng minh
