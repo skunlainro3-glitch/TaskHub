@@ -4,10 +4,10 @@
   "project_name": "taskhub-travel",
   "production_branch": "dev",
   "url": "https://taskhub-travel.pages.dev/",
-  "deployment_id": "bb4130cc-572c-44ee-9224-8749ceb4bde6",
-  "deployment_url": "https://bb4130cc.taskhub-travel.pages.dev",
-  "source_commit": "67f09028b8b7b07b38a6629999af73a0bde21845",
+  "deployment_id": "55131b6c-d97c-4e83-ad70-c0ab34d31792",
+  "deployment_url": "https://55131b6c.taskhub-travel.pages.dev",
+  "source_commit": "bbaa718e96ee670224a916efebd0c8eae9b46748",
   "backend_url": "https://taskhub.ninaninohihi.chatgpt.site",
-  "database": "Existing D1 binding DB unchanged; removed business-planning UI and retired /api/planning at the Pages gateway. Legacy Sites backend was not redeployed because source repository access returned NOT_FOUND. No schema migration or data deletion.",
+  "database": "Existing D1 binding DB unchanged; frontend-only footer version label removal. No API or schema migration.",
   "verified_on": "2026-11-13"
 }

@@ -1737,7 +1737,7 @@ function Workspace({ user, onLogout, onPortal, notify }) {
             </>
           )}
           <footer className="app-footer">
-            <span>TaskHub · Điều hành tour · 0.8.0</span>
+            <span>TaskHub · Điều hành tour</span>
             <span>Tour · Lịch / số chỗ · Công việc</span>
           </footer>
         </main>

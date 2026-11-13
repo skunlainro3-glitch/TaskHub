@@ -1,5 +1,10 @@
 # Kiểm chứng TaskHub
 
+## Ẩn phiên bản trên giao diện — 13/11/2026
+
+- Theo yêu cầu chủ dự án, footer chỉ hiển thị “TaskHub · Điều hành tour”, bỏ số phát hành 0.8.0. Không đổi phiên bản kỹ thuật hoặc số lần sửa báo giá.
+- `npm test` đạt **129/129**; build frontend và Pages đạt. Runtime `bbaa718e96ee670224a916efebd0c8eae9b46748` đã phát hành tại https://taskhub-travel.pages.dev/, Pages production `55131b6c-d97c-4e83-ad70-c0ab34d31792`. Kiểm tra chỉ đọc HTML/bundle production trả 200 và xác nhận footer không còn số phiên bản. Không đổi API, database hoặc dữ liệu người dùng.
+
 ## Gỡ Giá trị & doanh thu — 13/11/2026
 
 - Theo yêu cầu chủ dự án, gỡ menu, màn hình, công thức và API kế hoạch nội bộ. Dọn module khỏi nguồn xuất Sites; giữ nguyên bảng/migration lịch sử và dữ liệu đã lưu. Giá trị, giá/gói, BMC và P&L được nhóm chuẩn bị ngoài website.
